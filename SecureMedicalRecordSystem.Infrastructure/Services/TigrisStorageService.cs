@@ -22,7 +22,7 @@ public class TigrisStorageService : ITigrisStorageService
 
     // Known production bucket name — used as a code-level fallback if the env var is
     // missing or accidentally overridden to empty in Render / any deployment platform.
-    private const string FallbackBucketName = "medical-records-encrypted";
+    private const string FallbackBucketName = "medical-records-encrypted-dev";
 
     public TigrisStorageService(IAmazonS3 s3Client, IOptions<TigrisSettings> settings, ILogger<TigrisStorageService> logger)
     {

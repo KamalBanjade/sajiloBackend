@@ -121,7 +121,7 @@ try
     var tigrisSettings = builder.Configuration.GetSection("TigrisSettings").Get<TigrisSettings>() ?? new TigrisSettings();
     if (string.IsNullOrWhiteSpace(tigrisSettings.BucketName))
     {
-        tigrisSettings.BucketName = "medical-records-encrypted";
+        tigrisSettings.BucketName = "medical-records-encrypted-dev";
     }
     if (string.IsNullOrWhiteSpace(tigrisSettings.ServiceUrl))
     {
