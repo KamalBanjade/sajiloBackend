@@ -173,7 +173,7 @@ public class TigrisStorageService : ITigrisStorageService
             _logger.LogInformation("[PERF] [Tigris] S3 GetObjectAsync completed in {Ms}ms (metadata only, stream not copied)", sw.ElapsedMilliseconds);
             return new OwningS3Stream(response.ResponseStream, response);
         }
-        catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey")
+        catch (AmazonS3Exception ex) when (ex.ErrorCode == "NoSuchKey" || ex.StatusCode == HttpStatusCode.NotFound)
         {
             throw new FileNotFoundException($"File '{objectKey}' was not found in storage.", objectKey);
         }

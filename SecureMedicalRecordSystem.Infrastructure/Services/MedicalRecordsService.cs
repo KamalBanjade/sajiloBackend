@@ -205,7 +205,7 @@ public class MedicalRecordsService : IMedicalRecordsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[PERF] [Stream] CRITICAL FAILURE during stream setup for record {Id}", recordId);
-            return (false, "An error occurred during streaming.", null, null, null);
+            return (false, $"Streaming error: {ex.Message} | Expected Key: {record?.S3ObjectKey}", null, null, null);
         }
     }
 
