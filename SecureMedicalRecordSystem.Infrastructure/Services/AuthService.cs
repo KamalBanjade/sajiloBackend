@@ -1174,6 +1174,9 @@ public class AuthService : IAuthService
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? "VERY_REALLY_LONG_SECRET_KEY_FOR_JWT_DEVELOPMENT_ONLY";
+        var issuer = jwtSettings["Issuer"] ?? "SecureMedicalRecordAPI";
+        var audience = jwtSettings["Audience"] ?? "MedicalRecordClient";
+
         var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
 
         var claims = new List<Claim>
@@ -1190,8 +1193,8 @@ public class AuthService : IAuthService
         var expires = DateTime.UtcNow.AddDays(expirationDays);
 
         var token = new JwtSecurityToken(
-            issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             expires: expires,
             signingCredentials: creds

@@ -217,6 +217,8 @@ try
         throw new InvalidOperationException("JWT SecretKey is missing from configuration.");
     }
     var secretKey = Encoding.UTF8.GetBytes(secretKeyString);
+    var jwtIssuer = jwtSettings["Issuer"] ?? "SecureMedicalRecordAPI";
+    var jwtAudience = jwtSettings["Audience"] ?? "MedicalRecordClient";
 
     builder.Services.AddAuthentication(options =>
     {
@@ -232,9 +234,9 @@ try
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(secretKey),
             ValidateIssuer = true,
-            ValidIssuer = jwtSettings["Issuer"],
+            ValidIssuer = jwtIssuer,
             ValidateAudience = true,
-            ValidAudience = jwtSettings["Audience"],
+            ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
             RoleClaimType = ClaimTypes.Role,
