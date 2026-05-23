@@ -249,15 +249,17 @@ public class GoogleAuthService : IGoogleAuthService
     private async Task<LoginResponseDTO> GenerateLoginResponseAsync(ApplicationUser user, bool isNewUser)
     {
         var expirationDays = 30; // Default Google Auth token length (Remember Me)
-        
+
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey not found");
         var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
+        var audience = jwtSettings["Audience"] ?? "MedicalRecordClient";
 
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+            new Claim(JwtRegisteredClaimNames.Aud, audience),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.GivenName, user.FirstName),
             new Claim(ClaimTypes.Surname, user.LastName),
@@ -269,7 +271,7 @@ public class GoogleAuthService : IGoogleAuthService
 
         var token = new JwtSecurityToken(
             issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
+            audience: audience,
             claims: claims,
             expires: expiresAt,
             signingCredentials: creds
