@@ -252,7 +252,7 @@ public class GoogleAuthService : IGoogleAuthService
 
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey not found");
-        var issuer = jwtSettings["Issuer"] ?? "SecureMedicalRecordAPI";
+        var jwtIssuer = jwtSettings["Issuer"] ?? "SecureMedicalRecordAPI";
         var audience = jwtSettings["Audience"] ?? "MedicalRecordClient";
 
         var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
@@ -271,7 +271,7 @@ public class GoogleAuthService : IGoogleAuthService
         var expiresAt = DateTime.UtcNow.AddDays(expirationDays);
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
+            issuer: jwtIssuer,
             audience: audience,
             claims: claims,
             expires: expiresAt,
