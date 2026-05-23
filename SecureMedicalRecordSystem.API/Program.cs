@@ -274,7 +274,8 @@ try
             var host = new Uri(origin).Host;
 
             return host == "localhost" ||
-                   host.EndsWith(".local") ||   // allows DESKTOP-L89OLJD.local
+                   host == "sajilo-swasthya.vercel.app" ||
+                   host.EndsWith(".local") ||
                    host.StartsWith("192.168.") ||
                    host.StartsWith("172.");
         })
