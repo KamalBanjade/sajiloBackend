@@ -65,8 +65,8 @@ public class MedicalRecordsController : ControllerBase
         Response.Headers["X-Content-Type-Options"] = "nosniff";
         Response.Headers["Content-Disposition"] = $"inline; filename=\"{result.FileName}\"";
 
-        // enableRangeProcessing: true → browser PDF viewer can request pages on demand
-        return File(result.FileStream!, result.ContentType!, enableRangeProcessing: true);
+        // enableRangeProcessing: false → CryptoStream does not support seeking, so range processing must be disabled
+        return File(result.FileStream!, result.ContentType!, enableRangeProcessing: false);
     }
 
     [HttpGet("stream-download/{recordId}")]
