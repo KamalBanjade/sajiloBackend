@@ -253,13 +253,11 @@ public class GoogleAuthService : IGoogleAuthService
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey not found");
         var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
-        var audience = jwtSettings["Audience"] ?? "MedicalRecordClient";
 
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
-            new Claim(JwtRegisteredClaimNames.Aud, audience),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.GivenName, user.FirstName),
             new Claim(ClaimTypes.Surname, user.LastName),
@@ -271,7 +269,7 @@ public class GoogleAuthService : IGoogleAuthService
 
         var token = new JwtSecurityToken(
             issuer: jwtSettings["Issuer"],
-            audience: audience,
+            audience: jwtSettings["Audience"],
             claims: claims,
             expires: expiresAt,
             signingCredentials: creds
