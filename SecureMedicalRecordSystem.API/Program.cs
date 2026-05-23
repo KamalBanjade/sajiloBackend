@@ -117,14 +117,26 @@ try
     // Configuration Models
     builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
     builder.Services.Configure<EncryptionSettings>(builder.Configuration.GetSection("EncryptionSettings"));
-    builder.Services.Configure<TigrisSettings>(builder.Configuration.GetSection("TigrisSettings"));
+    // Retrieve and normalize TigrisSettings with code-level fallbacks for Render/production environment overrides
+    var tigrisSettings = builder.Configuration.GetSection("TigrisSettings").Get<TigrisSettings>() ?? new TigrisSettings();
+    if (string.IsNullOrWhiteSpace(tigrisSettings.BucketName))
+    {
+        tigrisSettings.BucketName = "medical-records-encrypted";
+    }
+    if (string.IsNullOrWhiteSpace(tigrisSettings.ServiceUrl))
+    {
+        tigrisSettings.ServiceUrl = "https://t3.storage.dev";
+    }
+    if (string.IsNullOrWhiteSpace(tigrisSettings.Region))
+    {
+        tigrisSettings.Region = "auto";
+    }
+    builder.Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(tigrisSettings));
+
     builder.Services.Configure<FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
     builder.Services.Configure<MasterKeySettings>(builder.Configuration.GetSection("MasterKeySettings"));
     builder.Services.Configure<SecureMedicalRecordSystem.Core.Settings.CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
     builder.Services.Configure<SecureMedicalRecordSystem.Core.Settings.AnalysisSettings>(builder.Configuration.GetSection("AnalysisSettings"));
-
-    // AWS/Tigris S3 Client Registration
-    var tigrisSettings = builder.Configuration.GetSection("TigrisSettings").Get<TigrisSettings>();
     
     // === DIAGNOSTIC: Log all Tigris config values at startup ===
     Log.Information(
