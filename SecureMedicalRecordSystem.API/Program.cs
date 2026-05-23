@@ -125,6 +125,18 @@ try
 
     // AWS/Tigris S3 Client Registration
     var tigrisSettings = builder.Configuration.GetSection("TigrisSettings").Get<TigrisSettings>();
+    
+    // === DIAGNOSTIC: Log all Tigris config values at startup ===
+    Log.Information(
+        "[Startup] TigrisSettings resolved: BucketName='{BucketName}' ServiceUrl='{ServiceUrl}' Region='{Region}' " +
+        "AccessKeyId='{AccessKeyIdHint}' SecretAccessKey='{SecretHint}'",
+        string.IsNullOrEmpty(tigrisSettings?.BucketName) ? "<EMPTY!>" : tigrisSettings.BucketName,
+        tigrisSettings?.ServiceUrl ?? "<NULL>",
+        tigrisSettings?.Region ?? "<NULL>",
+        string.IsNullOrEmpty(tigrisSettings?.AccessKeyId) ? "<EMPTY!>" : (tigrisSettings.AccessKeyId[..Math.Min(6, tigrisSettings.AccessKeyId.Length)] + "..."),
+        string.IsNullOrEmpty(tigrisSettings?.SecretAccessKey) ? "<EMPTY!>" : "[SET]"
+    );
+
     if (tigrisSettings != null)
     {
         builder.Services.AddSingleton<IAmazonS3>(sp =>
@@ -426,8 +438,29 @@ try
     app.UseAuthorization();
     app.MapControllers();
     
-    // Diagnostic Endpoint
+    // Diagnostic Endpoint - health/ping
     app.MapGet("/api/ping", () => Results.Ok(new { message = "Backend is reachable!", time = DateTime.Now }));
+    
+    // Diagnostic Endpoint - Tigris config check (shows what environment variables are actually bound)
+    app.MapGet("/api/tigris-config-check", (IConfiguration config) =>
+    {
+        var bucketName = config["TigrisSettings:BucketName"];
+        var serviceUrl = config["TigrisSettings:ServiceUrl"];
+        var region = config["TigrisSettings:Region"];
+        var accessKeyId = config["TigrisSettings:AccessKeyId"];
+        var secretKey = config["TigrisSettings:SecretAccessKey"];
+        
+        return Results.Ok(new
+        {
+            BucketName = string.IsNullOrEmpty(bucketName) ? "<EMPTY - NOT SET!>" : bucketName,
+            ServiceUrl = string.IsNullOrEmpty(serviceUrl) ? "<EMPTY>" : serviceUrl,
+            Region = string.IsNullOrEmpty(region) ? "<EMPTY>" : region,
+            AccessKeyIdSet = !string.IsNullOrEmpty(accessKeyId),
+            AccessKeyIdHint = string.IsNullOrEmpty(accessKeyId) ? "<EMPTY>" : accessKeyId[..Math.Min(6, accessKeyId.Length)] + "...",
+            SecretKeySet = !string.IsNullOrEmpty(secretKey),
+            Instructions = "If BucketName is <EMPTY>, add env var 'TigrisSettings__BucketName=your-bucket-name' in Render dashboard"
+        });
+    });
     
     app.MapHub<SecureMedicalRecordSystem.API.Hubs.ScannerHub>("/hubs/scanner").RequireCors("AllowFrontend");
     app.MapHub<SecureMedicalRecordSystem.API.Hubs.ChatHub>("/hubs/chat").RequireCors("AllowFrontend");

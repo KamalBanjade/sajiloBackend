@@ -20,11 +20,41 @@ public class TigrisStorageService : ITigrisStorageService
     private readonly string _bucketName;
     private readonly ILogger<TigrisStorageService> _logger;
 
+    // Known production bucket name — used as a code-level fallback if the env var is
+    // missing or accidentally overridden to empty in Render / any deployment platform.
+    private const string FallbackBucketName = "medical-records-encrypted";
+
     public TigrisStorageService(IAmazonS3 s3Client, IOptions<TigrisSettings> settings, ILogger<TigrisStorageService> logger)
     {
         _s3Client = s3Client;
         _logger = logger;
-        _bucketName = settings.Value.BucketName;
+
+        var tigrisSettings = settings.Value;
+        var configuredBucket = tigrisSettings.BucketName;
+
+        if (string.IsNullOrWhiteSpace(configuredBucket))
+        {
+            // appsettings.json has "medical-records-encrypted" as default, but a Render
+            // env var may have overridden it to "". Fall back to the known bucket name.
+            _bucketName = FallbackBucketName;
+            _logger.LogWarning(
+                "[TigrisStorageService] BucketName was empty in configuration — " +
+                "falling back to hardcoded value '{FallbackBucket}'. " +
+                "Fix this by setting env var TigrisSettings__BucketName in Render.",
+                _bucketName);
+        }
+        else
+        {
+            _bucketName = configuredBucket;
+        }
+
+        _logger.LogInformation(
+            "[TigrisStorageService] Initialized. BucketName='{BucketName}' ServiceUrl='{ServiceUrl}' Region='{Region}' AccessKeyId='{AccessKeyIdPrefix}'",
+            _bucketName,
+            tigrisSettings.ServiceUrl,
+            tigrisSettings.Region,
+            string.IsNullOrEmpty(tigrisSettings.AccessKeyId) ? "<EMPTY>" : tigrisSettings.AccessKeyId[..Math.Min(6, tigrisSettings.AccessKeyId.Length)] + "..."
+        );
     }
 
     // =========================================================
