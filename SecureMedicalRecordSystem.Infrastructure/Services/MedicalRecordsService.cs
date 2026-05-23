@@ -166,9 +166,33 @@ public class MedicalRecordsService : IMedicalRecordsService
             await _auditLogService.LogAsync(requestingUserId, "Medical Record Streamed",
                 $"Streamed {record.OriginalFileName}", "0.0.0.0", "Service", "MedicalRecord", record.Id.ToString());
 
-            // 4. Open raw S3 stream (no buffer copy — live network socket)
-            _logger.LogInformation("[PERF] [Stream] Phase 3: Opening raw S3 socket stream");
-            var s3Stream = await _tigrisService.OpenDownloadStreamAsync(record.S3ObjectKey);
+            var objectKey = record.S3ObjectKey;
+            Stream s3Stream;
+            try
+            {
+                s3Stream = await _tigrisService.OpenDownloadStreamAsync(objectKey);
+            }
+            catch (FileNotFoundException)
+            {
+                // Fallback for script-uploaded records that were placed in 'records/{PatientId}/{filename}'
+                var fileNameOnly = Path.GetFileName(objectKey);
+                var fallbackKey = $"records/{record.PatientId}/{fileNameOnly}";
+                
+                _logger.LogWarning("[Stream] File not found at {Key}. Attempting fallback to {FallbackKey}", objectKey, fallbackKey);
+                try
+                {
+                    s3Stream = await _tigrisService.OpenDownloadStreamAsync(fallbackKey);
+                    
+                    // Optional: Update DB to the correct path in the background so future requests don't need fallback
+                    // record.S3ObjectKey = fallbackKey;
+                    // await _context.SaveChangesAsync();
+                }
+                catch (Exception)
+                {
+                    // If fallback also fails, throw original
+                    throw new FileNotFoundException($"File not found in primary path or fallback path.", objectKey);
+                }
+            }
             _logger.LogInformation("[PERF] [Stream] Phase 3: S3 socket open in {Ms}ms (TTFB achieved)", sw.ElapsedMilliseconds);
 
             // 5. Wrap in live CryptoStream — no copy, no MemoryStream
