@@ -1,0 +1,43 @@
+using SecureMedicalRecordSystem.Core.Enums;
+
+namespace SecureMedicalRecordSystem.Core.DTOs.MedicalRecords;
+
+public class MedicalRecordResponseDTO
+{
+    public Guid Id { get; set; }
+    public Guid PatientId { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string? RecordType { get; set; }
+    public string? Description { get; set; }
+    public DateTime? RecordDate { get; set; }
+    public long FileSize { get; set; }
+    public string FileSizeFormatted { get; set; } = string.Empty; // e.g., "2.5 MB"
+    public string MimeType { get; set; } = string.Empty;
+    public RecordState State { get; set; }
+    public string StateLabel { get; set; } = string.Empty; // Human-readable state
+    public string? RejectionReason { get; set; }
+    public DateTime UploadedAt { get; set; }
+    public string UploadedBy { get; set; } = string.Empty; // Uploader name
+    public string PatientName { get; set; } = string.Empty;
+    
+    // Assignment Info
+    public string? AssignedDoctorName { get; set; }
+    public string? AssignedDepartment { get; set; }
+
+    // Certification Info
+    public bool IsCertified { get; set; }
+    public string? CertifiedBy { get; set; } // Doctor name
+    public Guid? CertifiedById { get; set; } // Doctor ID for profile link
+    public DateTime? CertifiedAt { get; set; }
+    
+    // Assignment/Generation Info
+    public Guid? AssignedDoctorId { get; set; } // Added for profile link
+    
+    public int Version { get; set; }
+    public bool CanDownload { get; set; } // Based on user permissions
+    
+    // Elderly-friendly timeline fields
+    public string RelativeTimeString { get; set; } = string.Empty; // e.g., "2 days ago (March 3)"
+    public string TimePeriod { get; set; } = string.Empty; // e.g., "THIS_WEEK"
+    public string? Tags { get; set; }
+}
