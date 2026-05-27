@@ -22,7 +22,7 @@ public static class EmailTemplates
         return $@"
         <div style='background-color: #ffffff; padding: 32px 32px 24px; text-align: center; border-bottom: 3px solid {bannerColor}; border-top-left-radius: 16px; border-top-right-radius: 16px;'>
             <div style='margin-bottom: 16px;'>
-                <img src='https://sajilo-swasthya.vercel.app/images/logo.webp' alt='Sajilo Swasthya Logo' style='height: 72px; width: auto; display: inline-block; border: none; outline: none;' />
+                <img src='https://sajilo-swasthya.vercel.app/images/logo.png' alt='Sajilo Swasthya Logo' style='height: 72px; width: auto; display: inline-block; border: none; outline: none; background: transparent; background-color: transparent;' />
             </div>
             <h1 style='color: {ColorPrimary}; margin: 0 0 4px; font-family: ""Outfit"", ""Inter"", system-ui, -apple-system, sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;'>Sajilo Swasthya</h1>
             <p style='color: #64748B; margin: 0 0 16px; font-family: ""Inter"", system-ui, sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.5px;'>Secure Medical Record System</p>
@@ -32,12 +32,13 @@ public static class EmailTemplates
 
     private static string GetFooterHtml()
     {
+        var uniqueRef = Guid.NewGuid().ToString("N").Substring(0, 8);
         return $@"
         <div style='background-color: #f8fafc; padding: 28px; text-align: center; font-family: ""Inter"", system-ui, -apple-system, sans-serif; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; border-top: 1px solid #e2e8f0;'>
             <p style='margin: 0; font-size: 12px; color: #64748b; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;'>Sajilo Swasthya Medical Network</p>
             <p style='margin: 6px 0; font-size: 11px; color: #94a3b8; line-height: 1.5;'>This communication, including any attachments, contains encrypted information intended solely for the system user and is protected under HIPAA compliance guidelines.</p>
             <div style='margin: 16px 0; border-top: 1px solid #e2e8f0;'></div>
-            <p style='margin: 0; font-size: 11px; color: #94a3b8;'>© {DateTime.Now.Year} Sajilo Swasthya. All rights reserved.</p>
+            <p style='margin: 0; font-size: 11px; color: #94a3b8;'>© {DateTime.Now.Year} Sajilo Swasthya. All rights reserved. <span style='display: none !important; font-size: 1px; color: transparent;'>{uniqueRef}</span></p>
             <p style='margin: 4px 0 0; font-size: 10px; color: #cbd5e1; font-style: italic;'>This is an automated clinical notification. Please do not reply directly to this message.</p>
         </div>";
     }
@@ -58,6 +59,7 @@ public static class EmailTemplates
 
     private static string BuildEmailHtml(string headerHtml, string bodyContentHtml)
     {
+        var uniqueRef = Guid.NewGuid().ToString("N");
         return $@"<!DOCTYPE html>
         <html>
         <head>
@@ -66,6 +68,9 @@ public static class EmailTemplates
             <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap' rel='stylesheet'>
         </head>
         <body style='font-family: ""Inter"", system-ui, -apple-system, sans-serif; background-color: {ColorBackground}; margin: 0; padding: 40px 20px; line-height: 1.6; -webkit-font-smoothing: antialiased;'>
+            <div style='display: none !important; font-size: 1px; color: transparent; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden; mso-hide: all;'>
+                System notification reference: {uniqueRef}
+            </div>
             <div style='max-width: 580px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0;'>
                 {headerHtml}
                 <div style='padding: 40px 32px; color: {ColorNeutralDark};'>
