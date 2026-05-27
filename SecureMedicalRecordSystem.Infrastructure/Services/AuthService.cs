@@ -757,11 +757,16 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) return (false, "Invalid request.");
 
-        // DEBUG: Log SecurityStamp at validation time — compare with ForgotPassword log above
-        Log.Warning("ResetPassword - Validating token for {UserId}. SecurityStamp: '{Stamp}'. Token length: {Length}",
-            user.Id, user.SecurityStamp ?? "<NULL>", request.Token?.Length);
+        // URL-decode the token: the email link uses Uri.EscapeDataString() to encode the token,
+        // but browsers / Next.js searchParams.get() may return it still percent-encoded,
+        // or may have converted '+' characters to spaces. Decoding here normalises both cases.
+        var decodedToken = Uri.UnescapeDataString(request.Token ?? string.Empty);
 
-        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        // DEBUG: Log SecurityStamp at validation time — compare with ForgotPassword log above
+        Log.Warning("ResetPassword - Validating token for {UserId}. SecurityStamp: '{Stamp}'. Token length (raw): {RawLen}, (decoded): {DecLen}",
+            user.Id, user.SecurityStamp ?? "<NULL>", request.Token?.Length, decodedToken.Length);
+
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
         if (result.Succeeded)
         {
             if (user.RequiresPasswordChange)
