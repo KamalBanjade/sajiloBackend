@@ -268,8 +268,8 @@ public class AuthService : IAuthService
                     
                     await _context.SaveChangesAsync();
 
-                    // 7. Generate Reset Token for Patient to set password
-                    var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    // 7. Generate Reset Token for Patient to set password (custom DB-backed)
+                    var resetToken = await GenerateCustomResetTokenAsync(user);
                     
                     // 8. Generate Invitation Link
                     var template = _urlProvider.PasswordResetLinkTemplate;
@@ -410,8 +410,8 @@ public class AuthService : IAuthService
 
                     await _context.SaveChangesAsync();
 
-                    // 9. Generate Reset Token for Doctor to set password immediately
-                    var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    // 9. Generate Reset Token for Doctor to set password immediately (custom DB-backed)
+                    var resetToken = await GenerateCustomResetTokenAsync(user);
                     
                     // 10. Generate Invitation Link (Password Reset Link)
                     var template = _urlProvider.PasswordResetLinkTemplate;
@@ -728,11 +728,8 @@ public class AuthService : IAuthService
             return (true, "If your email exists in our system, you will receive a password reset link shortly.");
         }
 
-        // DEBUG: Log SecurityStamp at token generation time
-        Log.Warning("ForgotPassword - Generating token for {UserId}. SecurityStamp: '{Stamp}'",
-            user.Id, user.SecurityStamp ?? "<NULL>");
-
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        // Generate custom DB-backed reset token instead of Identity DataProtection token
+        var token = await GenerateCustomResetTokenAsync(user);
         
         var template = _urlProvider.PasswordResetLinkTemplate;
         var resetLink = template
@@ -757,40 +754,56 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) return (false, "Invalid request.");
 
-        // URL-decode the token: the email link uses Uri.EscapeDataString() to encode the token,
-        // but browsers / Next.js searchParams.get() may return it still percent-encoded,
-        // or may have converted '+' characters to spaces. Decoding here normalises both cases.
         var decodedToken = Uri.UnescapeDataString(request.Token ?? string.Empty);
 
-        // DEBUG: Log SecurityStamp at validation time — compare with ForgotPassword log above
-        Log.Warning("ResetPassword - Validating token for {UserId}. SecurityStamp: '{Stamp}'. Token length (raw): {RawLen}, (decoded): {DecLen}",
-            user.Id, user.SecurityStamp ?? "<NULL>", request.Token?.Length, decodedToken.Length);
-
-        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
-        if (result.Succeeded)
+        // Validate the custom DB-backed reset token
+        var isValid = await ValidateCustomResetTokenAsync(user.Id, decodedToken);
+        if (!isValid)
         {
-            if (user.RequiresPasswordChange)
-            {
-                user.RequiresPasswordChange = false;
-                await _userManager.UpdateAsync(user);
-            }
-            
-            // NEW: Revoke all trusted devices (security measure)
-            await _trustedDeviceService.RevokeAllUserDevicesAsync(
-                user.Id, 
-                "Password reset - all devices untrusted for security");
-
-            await _cache.InvalidateAsync($"user:profile:{user.Id}");
-
-            await _auditLogService.LogAsync(user.Id, "Password Reset", "Password reset completed - all trusted devices revoked", "User will need to re-verify on all devices", "System");
-            
-            return (true, "Password reset successful. All trusted devices have been logged out for security.");
+            Log.Error("ResetPassword failed for {UserId}: Invalid or expired DB-backed token.", request.UserId);
+            return (false, "Password reset failed. The link is invalid or has expired.");
         }
 
-        var errors = string.Join(", ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
-        Log.Error("ResetPassword failed for {UserId}: {Errors}", request.UserId, errors);
+        // Apply new password by removing the old one and setting the new one.
+        // This ensures password validators (length, character requirements) are fully enforced.
+        var hasPassword = await _userManager.HasPasswordAsync(user);
+        if (hasPassword)
+        {
+            var removeResult = await _userManager.RemovePasswordAsync(user);
+            if (!removeResult.Succeeded)
+            {
+                var removeErrors = string.Join(", ", removeResult.Errors.Select(e => $"{e.Code}: {e.Description}"));
+                Log.Error("ResetPassword failed to remove password for {UserId}: {Errors}", request.UserId, removeErrors);
+                return (false, "Password reset failed.");
+            }
+        }
 
-        return (false, "Password reset failed.");
+        var addResult = await _userManager.AddPasswordAsync(user, request.NewPassword);
+        if (!addResult.Succeeded)
+        {
+            var errors = string.Join(", ", addResult.Errors.Select(e => $"{e.Code}: {e.Description}"));
+            Log.Error("ResetPassword failed to add password for {UserId}: {Errors}", request.UserId, errors);
+            return (false, $"Password reset failed: {errors}");
+        }
+
+        await _userManager.UpdateSecurityStampAsync(user);
+
+        if (user.RequiresPasswordChange)
+        {
+            user.RequiresPasswordChange = false;
+            await _userManager.UpdateAsync(user);
+        }
+        
+        // NEW: Revoke all trusted devices (security measure)
+        await _trustedDeviceService.RevokeAllUserDevicesAsync(
+            user.Id, 
+            "Password reset - all devices untrusted for security");
+
+        await _cache.InvalidateAsync($"user:profile:{user.Id}");
+
+        await _auditLogService.LogAsync(user.Id, "Password Reset", "Password reset completed - all trusted devices revoked", "User will need to re-verify on all devices", "System");
+        
+        return (true, "Password reset successful. All trusted devices have been logged out for security.");
     }
 
     public async Task<(bool Success, string Message)> ChangePasswordAsync(Guid userId, ChangePasswordRequestDTO request)
@@ -1442,5 +1455,76 @@ public class AuthService : IAuthService
             formatted += secret[i];
         }
         return formatted;
+    }
+
+    private async Task<string> GenerateCustomResetTokenAsync(ApplicationUser user)
+    {
+        // 1. Generate 32 bytes of cryptographically secure random data
+        var randomBytes = new byte[32];
+        using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(randomBytes);
+        }
+        var rawToken = Convert.ToHexString(randomBytes).ToLowerInvariant();
+
+        // 2. Hash the raw token using SHA-256 for secure storage
+        string tokenHash;
+        using (var sha256 = System.Security.Cryptography.SHA256.Create())
+        {
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawToken));
+            tokenHash = Convert.ToHexString(hashedBytes).ToLowerInvariant();
+        }
+
+        // 3. Deactivate any existing active password reset tokens for this user
+        var existingTokens = await _context.PasswordResetTokens
+            .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+        
+        foreach (var t in existingTokens)
+        {
+            t.IsUsed = true;
+        }
+
+        // 4. Create and save the new token
+        var dbToken = new PasswordResetToken
+        {
+            UserId = user.Id,
+            TokenHash = tokenHash,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            IsUsed = false,
+            CreatedBy = "System"
+        };
+
+        _context.PasswordResetTokens.Add(dbToken);
+        await _context.SaveChangesAsync();
+
+        return rawToken;
+    }
+
+    private async Task<bool> ValidateCustomResetTokenAsync(Guid userId, string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return false;
+
+        // 1. Hash the incoming raw token using SHA-256
+        string tokenHash;
+        using (var sha256 = System.Security.Cryptography.SHA256.Create())
+        {
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(token.Trim()));
+            tokenHash = Convert.ToHexString(hashedBytes).ToLowerInvariant();
+        }
+
+        // 2. Query the active, unused, unexpired token for this user
+        var dbToken = await _context.PasswordResetTokens
+            .FirstOrDefaultAsync(t => t.UserId == userId && t.TokenHash == tokenHash && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow);
+
+        if (dbToken == null) return false;
+
+        // 3. Mark the token as used so it cannot be reused
+        dbToken.IsUsed = true;
+        dbToken.UpdatedAt = DateTime.UtcNow;
+        dbToken.UpdatedBy = "System";
+        await _context.SaveChangesAsync();
+
+        return true;
     }
 }

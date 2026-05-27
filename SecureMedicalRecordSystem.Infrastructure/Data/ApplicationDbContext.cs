@@ -42,6 +42,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<MasterMedication> MasterMedications { get; set; }
     public DbSet<UserNotification> UserNotifications { get; set; }
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,6 +83,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         modelBuilder.Entity<PatientVitalBaseline>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<StabilityAlert>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<UserNotification>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<PasswordResetToken>().HasQueryFilter(e => !e.IsDeleted);
 
         // AuditLog specific configurations
         modelBuilder.Entity<AuditLog>(entity =>
@@ -663,6 +665,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ConnectedAt).HasDefaultValueSql("GETUTCDATE()");
 
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // PasswordResetToken
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
             entity.HasOne(e => e.User)
                   .WithMany()
                   .HasForeignKey(e => e.UserId)
