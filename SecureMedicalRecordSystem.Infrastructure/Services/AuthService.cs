@@ -753,6 +753,10 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) return (false, "Invalid request.");
 
+        // DEBUG: Print token details to see if it still has spaces or wrong characters
+        Log.Warning("ResetPassword token received for {UserId}. Length: {Length}. Contains space: {HasSpace}, Contains +: {HasPlus}. Token: {Token}", 
+            request.UserId, request.Token?.Length, request.Token?.Contains(" "), request.Token?.Contains("+"), request.Token);
+
         var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (result.Succeeded)
         {
