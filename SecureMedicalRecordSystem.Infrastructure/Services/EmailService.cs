@@ -1,14 +1,11 @@
-using MailKit.Net.Smtp;
-using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MimeKit;
 using SecureMedicalRecordSystem.Core.Entities;
 using SecureMedicalRecordSystem.Core.Interfaces;
 using SecureMedicalRecordSystem.Infrastructure.Configuration;
 using SecureMedicalRecordSystem.Infrastructure.Templates;
-using System.Net;
+using System.Net.Http.Json;
 
 namespace SecureMedicalRecordSystem.Infrastructure.Services;
 
@@ -109,24 +106,33 @@ public class EmailService : IEmailService
 
     public async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody)
     {
-        var message = new MimeMessage();
-        message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
-        message.To.Add(new MailboxAddress("", toEmail));
-        message.Subject = subject;
-
-        var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
-        message.Body = bodyBuilder.ToMessageBody();
-
-        using var client = new SmtpClient();
         try
         {
-            await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
-            await client.AuthenticateAsync(_settings.Username, _settings.Password);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.Add("api-key", _settings.Password);
 
-            _logger.LogInformation("Email sent successfully to {Email}", toEmail);
-            return true;
+            var payload = new
+            {
+                sender = new { name = _settings.FromName, email = _settings.FromEmail },
+                to = new[] { new { email = toEmail } },
+                subject = subject,
+                htmlContent = htmlBody
+            };
+
+            var response = await http.PostAsJsonAsync(
+                "https://api.brevo.com/v3/smtp/email",
+                payload
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Email sent successfully to {Email}", toEmail);
+                return true;
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Brevo API error: {Error}", error);
+            return false;
         }
         catch (Exception ex)
         {
@@ -213,27 +219,40 @@ public class EmailService : IEmailService
     {
         try
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
-            message.To.Add(new MailboxAddress("", toEmail));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
-
-            // Create .ics file
             var icsContent = GenerateIcsContent(appointment);
             var calendarBytes = System.Text.Encoding.UTF8.GetBytes(icsContent);
-            bodyBuilder.Attachments.Add("appointment.ics", calendarBytes, new ContentType("text", "calendar"));
 
-            message.Body = bodyBuilder.ToMessageBody();
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.Add("api-key", _settings.Password);
 
-            using var client = new SmtpClient();
-            await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
-            await client.AuthenticateAsync(_settings.Username, _settings.Password);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            var payload = new
+            {
+                sender = new { name = _settings.FromName, email = _settings.FromEmail },
+                to = new[] { new { email = toEmail } },
+                subject = subject,
+                htmlContent = htmlBody,
+                attachment = new[]
+                {
+                    new {
+                        name = "appointment.ics",
+                        content = Convert.ToBase64String(calendarBytes)
+                    }
+                }
+            };
 
-            return true;
+            var response = await http.PostAsJsonAsync(
+                "https://api.brevo.com/v3/smtp/email",
+                payload
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Brevo API error: {Error}", error);
+            return false;
         }
         catch (Exception ex)
         {
@@ -279,27 +298,42 @@ END:VCALENDAR";
             var subject = $"Follow-Up Appointment Confirmed — {followUpDate.ToLocalTime():MMMM d, yyyy}";
             var body = EmailTemplates.GetFollowUpScheduledTemplate(patientName, doctorName, followUpDate);
 
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
-            message.To.Add(new MailboxAddress(patientName, patientEmail));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder { HtmlBody = body };
-
             // Generate and attach the .ics calendar invite
             var icsContent = GenerateFollowUpIcsContent(appointmentId, doctorName, followUpDate, durationMinutes);
             var calendarBytes = System.Text.Encoding.UTF8.GetBytes(icsContent);
-            bodyBuilder.Attachments.Add("follow-up-appointment.ics", calendarBytes, new ContentType("text", "calendar"));
 
-            message.Body = bodyBuilder.ToMessageBody();
+            using var http = new HttpClient();
+            http.DefaultRequestHeaders.Add("api-key", _settings.Password);
 
-            using var client = new SmtpClient();
-            await client.ConnectAsync(_settings.Host, _settings.Port, _settings.UseSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
-            await client.AuthenticateAsync(_settings.Username, _settings.Password);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            var payload = new
+            {
+                sender = new { name = _settings.FromName, email = _settings.FromEmail },
+                to = new[] { new { email = patientEmail, name = patientName } },
+                subject = subject,
+                htmlContent = body,
+                attachment = new[]
+                {
+                    new {
+                        name = "follow-up-appointment.ics",
+                        content = Convert.ToBase64String(calendarBytes)
+                    }
+                }
+            };
 
-            _logger.LogInformation("Follow-up confirmation email sent to {Email}", patientEmail);
+            var response = await http.PostAsJsonAsync(
+                "https://api.brevo.com/v3/smtp/email",
+                payload
+            );
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Follow-up confirmation email sent to {Email}", patientEmail);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Brevo API error: {Error}", error);
+            }
         }
         catch (Exception ex)
         {
