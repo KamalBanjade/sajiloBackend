@@ -148,7 +148,7 @@ public class AuthService : IAuthService
                     var template = _urlProvider.EmailConfirmationLinkTemplate;
                     
                     var confirmationLink = template
-                        .Replace("[TOKEN]", System.Net.WebUtility.UrlEncode(token))
+                        .Replace("[TOKEN]", Uri.EscapeDataString(token))
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 9. Log Action
@@ -274,7 +274,7 @@ public class AuthService : IAuthService
                     // 8. Generate Invitation Link
                     var template = _urlProvider.PasswordResetLinkTemplate;
                     var resetLink = template
-                        .Replace("[TOKEN]", System.Net.WebUtility.UrlEncode(resetToken))
+                        .Replace("[TOKEN]", Uri.EscapeDataString(resetToken))
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 9. Log Action
@@ -416,7 +416,7 @@ public class AuthService : IAuthService
                     // 10. Generate Invitation Link (Password Reset Link)
                     var template = _urlProvider.PasswordResetLinkTemplate;
                     var resetLink = template
-                        .Replace("[TOKEN]", System.Net.WebUtility.UrlEncode(resetToken))
+                        .Replace("[TOKEN]", Uri.EscapeDataString(resetToken))
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 11. Log Action
@@ -687,7 +687,7 @@ public class AuthService : IAuthService
         var template = _urlProvider.EmailConfirmationLinkTemplate;
         
         var confirmationLink = template
-            .Replace("[TOKEN]", System.Net.WebUtility.UrlEncode(token))
+            .Replace("[TOKEN]", Uri.EscapeDataString(token))
             .Replace("[USERID]", user.Id.ToString());
         
         var emailAddr = user.Email!;
@@ -732,7 +732,7 @@ public class AuthService : IAuthService
         
         var template = _urlProvider.PasswordResetLinkTemplate;
         var resetLink = template
-            .Replace("[TOKEN]", System.Net.WebUtility.UrlEncode(token))
+            .Replace("[TOKEN]", Uri.EscapeDataString(token))
             .Replace("[USERID]", user.Id.ToString());
 
         var emailAddr = email;
