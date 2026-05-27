@@ -217,8 +217,12 @@ try
             }));
 
     // Data Protection Keys Persistence
+    // SetApplicationName pins the discriminator to a fixed value so tokens survive
+    // Render re-deployments and blue-green instance overlaps where the content-root
+    // path may differ between containers, causing "InvalidToken" on password reset.
     builder.Services.AddDataProtection()
-        .PersistKeysToDbContext<ApplicationDbContext>();
+        .PersistKeysToDbContext<ApplicationDbContext>()
+        .SetApplicationName("SajiloSwasthya");
 
     // Identity Configuration
     builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
