@@ -11,8 +11,6 @@ public static class EmailTemplates
     // Brand Color Constants (Matching PDF Clinical Styling)
     private const string ColorPrimary = "#003B73";     // Deep Clinical Navy Blue
     private const string ColorSecondary = "#00A388";   // Clinical Teal / Emerald Green
-    private const string ColorWarning = "#D97706";     // Status Amber
-    private const string ColorDanger = "#DC2626";      // Status Red
     private const string ColorNeutralDark = "#1E293B";  // Slate Dark (for high contrast text)
     private const string ColorNeutralLight = "#64748B"; // Slate Medium (for subtle labels)
 
@@ -21,13 +19,12 @@ public static class EmailTemplates
     private static string GetHeaderHtml(string subtitle, string bannerColor = ColorPrimary)
     {
         return $@"
-        <div style='background: linear-gradient(135deg, {bannerColor} 0%, #0f172a 100%); padding: 36px 32px; text-align: center; border-top-left-radius: 16px; border-top-right-radius: 16px;'>
-            <div style='display: inline-block; background: rgba(255, 255, 255, 0.12); border-radius: 50%; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255, 255, 255, 0.2);'>
-                <span style='font-size: 32px; line-height: 1; display: block;'>🏥</span>
+        <div style='background-color: #ffffff; padding: 24px 32px 16px; text-align: center; border-bottom: 2px solid {bannerColor}; border-top-left-radius: 16px; border-top-right-radius: 16px;'>
+            <div style='margin-bottom: 12px;'>
+                <img src='https://sajilo-swasthya.vercel.app/icon.webp' alt='Sajilo Swasthya' style='height: 48px; width: auto; display: inline-block;' />
             </div>
-            <h1 style='color: #ffffff; margin: 0; font-family: ""Outfit"", ""Inter"", system-ui, -apple-system, sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;'>Sajilo Swasthya</h1>
-            <p style='color: #94a3b8; margin: 4px 0 0; font-family: ""Inter"", system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;'>Secure Health Portal</p>
-            {(!string.IsNullOrEmpty(subtitle) ? $"<div style='display: inline-block; background: rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 4px 16px; margin-top: 14px; border: 1px solid rgba(255, 255, 255, 0.12);'><span style='color: #38bdf8; font-family: \"Inter\", system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;'>{subtitle}</span></div>" : "")}
+            <h1 style='color: {ColorPrimary}; margin: 0; font-family: ""Outfit"", ""Inter"", system-ui, -apple-system, sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;'>Sajilo Swasthya</h1>
+            {(!string.IsNullOrEmpty(subtitle) ? $"<div style='display: inline-block; background-color: #F1F5F9; color: {bannerColor}; border-radius: 20px; padding: 4px 12px; margin-top: 12px; font-family: \"Inter\", system-ui, sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;'>{subtitle}</div>" : "")}
         </div>";
     }
 
@@ -101,8 +98,8 @@ public static class EmailTemplates
                     <td style='padding: 8px 0;'><code style='background: #e2e8f0; color: #0f172a; padding: 4px 8px; border-radius: 6px; font-family: Consolas, monospace; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;'>{temporaryPassword}</code></td>
                 </tr>
             </table>
-            <div style='margin-top: 16px; background-color: #fffbeb; border-left: 4px solid #d97706; padding: 12px; border-radius: 4px;'>
-                <p style='margin: 0; font-size: 12px; color: #92400e; font-weight: 500;'>⚠️ For clinical security compliance, you will be required to configure your permanent password on your first login.</p>
+            <div style='margin-top: 16px; background-color: #f1f5f9; border-left: 4px solid {ColorSecondary}; padding: 12px; border-radius: 4px;'>
+                <p style='margin: 0; font-size: 12px; color: {ColorPrimary}; font-weight: 500;'>⚠️ For clinical security compliance, you will be required to configure your permanent password on your first login.</p>
             </div>
         </div>
 
@@ -132,16 +129,16 @@ public static class EmailTemplates
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorSecondary};'>Dear {patientName},</h2>
         <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Your healthcare provider has created a secure patient portal chart for you in the <strong>Sajilo Swasthya Portal</strong>. You can now access your clinical summaries, prescriptions, and message your doctors online.</p>
         
-        <div style='background-color: #f0fdfa; padding: 24px; border-radius: 12px; border: 1px solid #99f6e4; margin: 28px 0;'>
-            <h3 style='font-family: ""Outfit"", sans-serif; font-size: 15px; margin-top: 0; margin-bottom: 16px; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px;'>Your Patient Credentials</h3>
+        <div style='background-color: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #cbd5e1; margin: 28px 0;'>
+            <h3 style='font-family: ""Outfit"", sans-serif; font-size: 15px; margin-top: 0; margin-bottom: 16px; color: {ColorSecondary}; text-transform: uppercase; letter-spacing: 0.5px;'>Your Patient Credentials</h3>
             <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
                 <tr>
-                    <td style='padding: 8px 0; color: #0f766e; width: 35%; font-weight: 600;'>Patient Email</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; width: 35%; font-weight: 600;'>Patient Email</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{email}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #0f766e; font-weight: 600;'>Temporary Pass</td>
-                    <td style='padding: 8px 0;'><code style='background: #ccfbf1; color: #0f766e; padding: 4px 8px; border-radius: 6px; font-family: Consolas, monospace; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;'>{temporaryPassword}</code></td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600;'>Temporary Pass</td>
+                    <td style='padding: 8px 0;'><code style='background: #e2e8f0; color: {ColorSecondary}; padding: 4px 8px; border-radius: 6px; font-family: Consolas, monospace; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;'>{temporaryPassword}</code></td>
                 </tr>
             </table>
         </div>
@@ -163,12 +160,12 @@ public static class EmailTemplates
 
     public static string GetPasswordResetTemplate(string resetLink)
     {
-        var header = GetHeaderHtml("SECURITY CONTROL", ColorWarning);
+        var header = GetHeaderHtml("SECURITY CONTROL", ColorPrimary);
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorNeutralDark};'>Password Reset Request</h2>
         <p style='font-size: 15px; color: #334155; margin-bottom: 20px;'>We received an official request to reset the account password for your <strong>Sajilo Swasthya</strong> profile. If you initiated this request, please click the secure link below to update your password:</p>
         
-        {GetButtonHtml("Reset Account Password", resetLink, ColorWarning)}
+        {GetButtonHtml("Reset Account Password", resetLink, ColorSecondary)}
         <p style='font-size: 12px; color: {ColorNeutralLight}; text-align: center; margin-top: -16px;'>For security, this password reset link will expire in 24 hours.</p>
 
         <div style='margin-top: 32px; background-color: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;'>
@@ -235,19 +232,19 @@ public static class EmailTemplates
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorSecondary};'>Dear {patientName},</h2>
         <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Your clinical session has been officially <strong>confirmed</strong> by the physician. Below are your scheduled consultation guidelines:</p>
         
-        <div style='background-color: #f0fdf4; padding: 24px; border-radius: 12px; border: 1px solid #bbf7d0; margin: 24px 0;'>
+        <div style='background-color: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid {ColorSecondary}; margin: 24px 0;'>
             <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
                 <tr>
-                    <td style='padding: 8px 0; color: #166534; width: 35%; font-weight: 600;'>Attending Doctor</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; width: 35%; font-weight: 600;'>Attending Doctor</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>Dr. {doctorName}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #166534; font-weight: 600;'>Department</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600;'>Department</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{department}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #166534; font-weight: 600;'>Date & Time</td>
-                    <td style='padding: 8px 0; color: #166534; font-weight: 800; font-size: 15px;'>{date:f}</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600;'>Date & Time</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 800; font-size: 15px;'>{date:f}</td>
                 </tr>
             </table>
         </div>
@@ -261,14 +258,14 @@ public static class EmailTemplates
 
     public static string GetAppointmentCancelledTemplate(string userName, DateTime date, string reason, string role)
     {
-        var header = GetHeaderHtml("APPOINTMENT CANCELLED", ColorDanger);
+        var header = GetHeaderHtml("APPOINTMENT CANCELLED", ColorPrimary);
         var body = $@"
-        <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorDanger};'>Dear {userName},</h2>
+        <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorPrimary};'>Dear {userName},</h2>
         <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Please be advised that your scheduled clinical session on <strong>{date:f}</strong> has been cancelled.</p>
         
-        <div style='background-color: #fef2f2; padding: 24px; border-radius: 12px; border: 1px solid #fecaca; margin: 24px 0;'>
-            <h3 style='font-family: ""Outfit"", sans-serif; font-size: 14px; margin-top: 0; margin-bottom: 8px; color: #991b1b; text-transform: uppercase; letter-spacing: 0.5px;'>Cancellation Reason</h3>
-            <p style='margin: 0; font-size: 14px; color: #991b1b; font-weight: 600;'>{reason}</p>
+        <div style='background-color: #f1f5f9; padding: 24px; border-radius: 12px; border: 1px solid #cbd5e1; margin: 24px 0;'>
+            <h3 style='font-family: ""Outfit"", sans-serif; font-size: 14px; margin-top: 0; margin-bottom: 8px; color: {ColorPrimary}; text-transform: uppercase; letter-spacing: 0.5px;'>Cancellation Reason</h3>
+            <p style='margin: 0; font-size: 14px; color: {ColorNeutralDark}; font-weight: 600;'>{reason}</p>
         </div>
 
         {(role == "Patient" ? $"<p style='font-size: 14px; color: #334155;'>If you wish to reschedule this appointment, please visit the <strong>Sajilo Swasthya</strong> patient dashboard or contact the clinic reception immediately.</p>" : "")}";
@@ -278,23 +275,23 @@ public static class EmailTemplates
 
     public static string GetAppointmentRescheduledTemplate(string patientName, string doctorName, DateTime oldDate, DateTime newDate)
     {
-        var header = GetHeaderHtml("RESCHEDULE NOTICE", ColorWarning);
+        var header = GetHeaderHtml("RESCHEDULE NOTICE", ColorPrimary);
         var body = $@"
-        <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorWarning};'>Dear {patientName},</h2>
+        <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorPrimary};'>Dear {patientName},</h2>
         <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Your clinical session with Dr. {doctorName} has been rescheduled to optimize provider availability. Please note the adjusted timeframe:</p>
         
-        <div style='background-color: #fffbeb; padding: 24px; border-radius: 12px; border: 1px solid #fef3c7; margin: 24px 0;'>
+        <div style='background-color: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #cbd5e1; margin: 24px 0;'>
             <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
                 <tr>
-                    <td style='padding: 8px 0; color: #92400e; width: 35%; font-weight: 600;'>Original Time</td>
-                    <td style='padding: 8px 0; color: #b45309; text-decoration: line-through;'>{oldDate:f}</td>
+                    <td style='padding: 8px 0; color: {ColorNeutralLight}; width: 35%; font-weight: 600;'>Original Time</td>
+                    <td style='padding: 8px 0; color: {ColorNeutralLight}; text-decoration: line-through;'>{oldDate:f}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #92400e; font-weight: 600;'>Rescheduled</td>
-                    <td style='padding: 8px 0; color: #92400e; font-weight: 800; font-size: 15px;'>{newDate:f}</td>
+                    <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 600;'>Rescheduled</td>
+                    <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 800; font-size: 15px;'>{newDate:f}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #92400e; font-weight: 600;'>Attending</td>
+                    <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Attending</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>Dr. {doctorName}</td>
                 </tr>
             </table>
@@ -373,23 +370,23 @@ public static class EmailTemplates
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 20px; margin-top: 0; color: {ColorSecondary};'>Dear {patientName},</h2>
         <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Your physician has successfully scheduled a follow-up consultation for you to monitor your health progress. Below are the confirmed details:</p>
         
-        <div style='background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 24px; margin-bottom: 24px;'>
+        <div style='background-color: #f8fafc; border: 1px solid {ColorSecondary}; border-radius: 12px; padding: 24px; margin-bottom: 24px;'>
             <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
                 <tr>
-                    <td style='padding: 8px 0; color: #047857; width: 35%; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Follow-Up Date</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; width: 35%; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Follow-Up Date</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{formattedDate}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #047857; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Session Time</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Session Time</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{formattedTime}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #047857; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Physician</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Physician</td>
                     <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>Dr. {doctorName}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px 0; color: #047857; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Visit Type</td>
-                    <td style='padding: 8px 0; color: #059669; font-weight: 800;'>Clinical Follow-Up</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;'>Visit Type</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 800;'>Clinical Follow-Up</td>
                 </tr>
             </table>
         </div>
