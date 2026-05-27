@@ -21,6 +21,7 @@ using Serilog.Events;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using dotenv.net;
+using Microsoft.AspNetCore.DataProtection;
 
 // Initial bootstrap logger
 Log.Logger = new LoggerConfiguration()
@@ -214,6 +215,10 @@ try
                     maxRetryDelay: TimeSpan.FromSeconds(10),
                     errorNumbersToAdd: null);
             }));
+
+    // Data Protection Keys Persistence
+    builder.Services.AddDataProtection()
+        .PersistKeysToDbContext<ApplicationDbContext>();
 
     // Identity Configuration
     builder.Services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
