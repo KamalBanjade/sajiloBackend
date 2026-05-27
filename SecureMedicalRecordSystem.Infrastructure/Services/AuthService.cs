@@ -753,10 +753,7 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) return (false, "Invalid request.");
 
-        // Decode token in case it was URL-encoded in the reset link
-        var decodedToken = System.Net.WebUtility.UrlDecode(request.Token);
-
-        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
+        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (result.Succeeded)
         {
             if (user.RequiresPasswordChange)
@@ -776,6 +773,9 @@ public class AuthService : IAuthService
             
             return (true, "Password reset successful. All trusted devices have been logged out for security.");
         }
+
+        var errors = string.Join(", ", result.Errors.Select(e => $"{e.Code}: {e.Description}"));
+        Log.Error("ResetPassword failed for {UserId}: {Errors}", request.UserId, errors);
 
         return (false, "Password reset failed.");
     }
