@@ -753,7 +753,10 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) return (false, "Invalid request.");
 
-        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        // Decode token in case it was URL-encoded in the reset link
+        var decodedToken = System.Net.WebUtility.UrlDecode(request.Token);
+
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
         if (result.Succeeded)
         {
             if (user.RequiresPasswordChange)
