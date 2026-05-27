@@ -728,6 +728,10 @@ public class AuthService : IAuthService
             return (true, "If your email exists in our system, you will receive a password reset link shortly.");
         }
 
+        // DEBUG: Log SecurityStamp at token generation time
+        Log.Warning("ForgotPassword - Generating token for {UserId}. SecurityStamp: '{Stamp}'",
+            user.Id, user.SecurityStamp ?? "<NULL>");
+
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         
         var template = _urlProvider.PasswordResetLinkTemplate;
@@ -753,9 +757,9 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user == null) return (false, "Invalid request.");
 
-        // DEBUG: Print token details to see if it still has spaces or wrong characters
-        Log.Warning("ResetPassword token received for {UserId}. Length: {Length}. Contains space: {HasSpace}, Contains +: {HasPlus}. Token: {Token}", 
-            request.UserId, request.Token?.Length, request.Token?.Contains(" "), request.Token?.Contains("+"), request.Token);
+        // DEBUG: Log SecurityStamp at validation time — compare with ForgotPassword log above
+        Log.Warning("ResetPassword - Validating token for {UserId}. SecurityStamp: '{Stamp}'. Token length: {Length}",
+            user.Id, user.SecurityStamp ?? "<NULL>", request.Token?.Length);
 
         var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (result.Succeeded)
