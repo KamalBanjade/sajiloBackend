@@ -1267,6 +1267,7 @@ public class AuthService : IAuthService
         bool? isActive = null)
     {
         var query = _userManager.Users.AsNoTracking().AsQueryable();
+        var now = DateTimeOffset.UtcNow;
 
         if (!string.IsNullOrEmpty(searchTerm))
         {
@@ -1283,7 +1284,14 @@ public class AuthService : IAuthService
 
         if (isActive.HasValue)
         {
-            query = query.Where(u => u.IsActive == isActive.Value);
+            if (isActive.Value)
+            {
+                query = query.Where(u => u.IsActive && (u.LockoutEnd == null || u.LockoutEnd <= now));
+            }
+            else
+            {
+                query = query.Where(u => !u.IsActive || (u.LockoutEnd != null && u.LockoutEnd > now));
+            }
         }
 
         var totalCount = await query.CountAsync();
@@ -1298,7 +1306,7 @@ public class AuthService : IAuthService
                 FirstName = u.FirstName,
                 LastName = u.LastName,
                 Role = u.Role,
-                IsActive = u.IsActive,
+                IsActive = u.IsActive && (u.LockoutEnd == null || u.LockoutEnd <= now),
                 EmailConfirmed = u.EmailConfirmed,
                 CreatedAt = u.CreatedAt,
                 LastLoginAt = u.LastLoginAt,
@@ -1325,6 +1333,11 @@ public class AuthService : IAuthService
         if (user == null) return (false, "User not found.");
 
         user.IsActive = isActive;
+        if (isActive)
+        {
+            user.LockoutEnd = null;
+            user.AccessFailedCount = 0;
+        }
         var result = await _userManager.UpdateAsync(user);
 
         if (!result.Succeeded) return (false, "Failed to update user status.");
@@ -1343,6 +1356,12 @@ public class AuthService : IAuthService
         user.LastName = request.LastName;
         user.PhoneNumber = request.PhoneNumber;
         user.IsActive = request.IsActive;
+
+        if (request.IsActive)
+        {
+            user.LockoutEnd = null;
+            user.AccessFailedCount = 0;
+        }
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded) return (false, "Failed to update user profile.");
