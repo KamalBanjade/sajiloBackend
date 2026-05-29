@@ -16,7 +16,13 @@ public interface IDoctorAvailabilityService
         Guid doctorId, 
         DateTime startDateTime, 
         DateTime endDateTime, 
-        string reason);
+        string reason,
+        bool forceCancel = false);
+
+    Task<int> GetConflictingAppointmentsCountAsync(
+        Guid doctorId, 
+        DateTime startDateTime, 
+        DateTime endDateTime);
 
     Task<(bool Success, string Message)> UnblockTimeAsync(
         Guid availabilityId,

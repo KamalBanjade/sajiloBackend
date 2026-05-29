@@ -33,8 +33,8 @@ public class LocalUrlProvider : ILocalUrlProvider
             {
                 return configured.TrimEnd('/');
             }
-            logger.LogInformation("FrontendUrl not explicitly configured. Defaulting to https://sajilo-swasthya.vercel.app");
-            return "https://sajilo-swasthya.vercel.app";
+            logger.LogInformation("FrontendUrl not explicitly configured. Defaulting to http://localhost:3000");
+            return "http://localhost:3000";
         });
 
         _frontendIpBaseUrl = new Lazy<string>(() =>

@@ -55,4 +55,6 @@ public class BlockTimeDTO
     [Required]
     [MaxLength(100)]
     public string Reason { get; set; } = string.Empty;
+
+    public bool ForceCancel { get; set; } = false;
 }
