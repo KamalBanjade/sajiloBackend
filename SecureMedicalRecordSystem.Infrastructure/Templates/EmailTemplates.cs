@@ -116,7 +116,7 @@ public static class EmailTemplates
 
         <div style='margin-top: 24px; padding: 18px; background-color: #F8FAFC; border-radius: 12px; border: 1px solid #E2E8F0; text-align: center;'>
             <p style='margin: 0; font-size: 13px; color: #475569; font-weight: 500;'>Once your credentials are configured, you can log in to the portal at:</p>
-            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='http://localhost:3000/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: http://localhost:3000/</a></p>
+            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='https://sajilo-swasthya.vercel.app/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: https://sajilo-swasthya.vercel.app/</a></p>
         </div>
 
         <h3 style='font-family: ""Outfit"", sans-serif; font-size: 14px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 32px; color: {ColorPrimary}; text-transform: uppercase; letter-spacing: 0.5px;'>Clinical Onboarding Guide</h3>
@@ -161,7 +161,7 @@ public static class EmailTemplates
 
         <div style='margin-top: 24px; padding: 18px; background-color: #F8FAFC; border-radius: 12px; border: 1px solid #E2E8F0; text-align: center;'>
             <p style='margin: 0; font-size: 13px; color: #475569; font-weight: 500;'>Once activated, you can log in to the portal at:</p>
-            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='http://localhost:3000/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: http://localhost:3000/</a></p>
+            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='https://sajilo-swasthya.vercel.app/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: https://sajilo-swasthya.vercel.app/</a></p>
         </div>
 
         <div style='margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 20px;'>
@@ -293,7 +293,7 @@ public static class EmailTemplates
         {
             body += $@"
             <p style='font-size: 14px; color: #334155; margin-bottom: 24px;'>We apologize for any inconvenience caused. You can easily reschedule your session by selecting a new date and time on the patient portal:</p>
-            {GetButtonHtml("Reschedule Now", "http://localhost:3000/appointments/new", ColorSecondary)}
+            {GetButtonHtml("Reschedule Now", "https://sajilo-swasthya.vercel.app/appointments/new", ColorSecondary)}
             <div style='margin-top: 24px; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;'>
                 <p style='margin: 0; font-size: 13px; color: #475569;'>Need assistance? You can also contact the clinic reception desk to reschedule.</p>
             </div>";
@@ -385,7 +385,7 @@ public static class EmailTemplates
         </div>
 
         <p style='font-size: 14px; color: #334155; margin-bottom: 20px;'>You can review the patient's historical medical records, charts, and pre-populate observation templates directly inside your Doctor Dashboard.</p>
-        {GetButtonHtml("Access Doctor Dashboard", "http://localhost:3000/doctor", ColorPrimary)}";
+        {GetButtonHtml("Access Doctor Dashboard", "https://sajilo-swasthya.vercel.app/doctor", ColorPrimary)}";
 
         return BuildEmailHtml(header, body);
     }

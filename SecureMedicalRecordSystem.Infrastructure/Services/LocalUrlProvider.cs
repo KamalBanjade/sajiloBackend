@@ -33,8 +33,8 @@ public class LocalUrlProvider : ILocalUrlProvider
             {
                 return configured.TrimEnd('/');
             }
-            logger.LogInformation("FrontendUrl not explicitly configured. Defaulting to http://localhost:3000");
-            return "http://localhost:3000";
+            logger.LogInformation("FrontendUrl not explicitly configured. Defaulting to https://sajilo-swasthya.vercel.app");
+            return "https://sajilo-swasthya.vercel.app";
         });
 
         _frontendIpBaseUrl = new Lazy<string>(() =>
@@ -44,8 +44,8 @@ public class LocalUrlProvider : ILocalUrlProvider
             {
                 return configured.TrimEnd('/');
             }
-            logger.LogInformation("FrontendIpUrl not explicitly configured. Auto-detecting via local IP: {Ip}", _localIpAddress.Value);
-            return $"http://{_localIpAddress.Value}:3000";
+            logger.LogInformation("FrontendIpUrl not explicitly configured. Defaulting to https://sajilo-swasthya.vercel.app");
+            return "https://sajilo-swasthya.vercel.app";
         });
 
         _backendBaseUrl = new Lazy<string>(() =>
@@ -55,8 +55,8 @@ public class LocalUrlProvider : ILocalUrlProvider
             {
                 return configured.TrimEnd('/');
             }
-            logger.LogInformation("BackendUrl not explicitly configured. Auto-detecting via local IP: {Ip}", _localIpAddress.Value);
-            return $"http://{_localIpAddress.Value}:5004";
+            logger.LogInformation("BackendUrl not explicitly configured. Defaulting to https://sajilobackend-0r8o.onrender.com");
+            return "https://sajilobackend-0r8o.onrender.com";
         });
 
         _emailConfirmationLinkTemplate = new Lazy<string>(() =>
