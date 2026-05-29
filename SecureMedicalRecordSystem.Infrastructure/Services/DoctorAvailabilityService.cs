@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SecureMedicalRecordSystem.Core.DTOs.Appointments;
+using SecureMedicalRecordSystem.Core.DTOs.Notifications;
 using SecureMedicalRecordSystem.Core.Entities;
 using SecureMedicalRecordSystem.Core.Enums;
 using SecureMedicalRecordSystem.Core.Interfaces;
@@ -10,10 +13,17 @@ namespace SecureMedicalRecordSystem.Infrastructure.Services;
 public class DoctorAvailabilityService : IDoctorAvailabilityService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<DoctorAvailabilityService> _logger;
 
-    public DoctorAvailabilityService(ApplicationDbContext context)
+    public DoctorAvailabilityService(
+        ApplicationDbContext context,
+        IServiceScopeFactory scopeFactory,
+        ILogger<DoctorAvailabilityService> logger)
     {
         _context = context;
+        _scopeFactory = scopeFactory;
+        _logger = logger;
     }
     public async Task<(bool Success, string Message)> SetWorkingHoursAsync(
         Guid doctorId, 
@@ -91,12 +101,55 @@ public class DoctorAvailabilityService : IDoctorAvailabilityService
         return (true, "Working hours updated successfully.");
     }
 
+    public async Task<int> GetConflictingAppointmentsCountAsync(
+        Guid doctorId, 
+        DateTime startDateTime, 
+        DateTime endDateTime)
+    {
+        var localStart = DateTime.SpecifyKind(new DateTime(startDateTime.Ticks), DateTimeKind.Local);
+        var utcStart = localStart.ToUniversalTime();
+
+        var localEnd = DateTime.SpecifyKind(new DateTime(endDateTime.Ticks), DateTimeKind.Local);
+        var utcEnd = localEnd.ToUniversalTime();
+
+        return await _context.Appointments
+            .CountAsync(a => a.DoctorId == doctorId &&
+                             a.IsActive &&
+                             !a.IsCancelled &&
+                             (a.Status == AppointmentStatus.Scheduled || a.Status == AppointmentStatus.Confirmed) &&
+                             a.AppointmentDate < utcEnd &&
+                             a.AppointmentDate.AddMinutes(a.Duration) > utcStart);
+    }
+
     public async Task<(bool Success, string Message)> BlockTimeAsync(
         Guid doctorId, 
         DateTime startDateTime, 
         DateTime endDateTime, 
-        string reason)
+        string reason,
+        bool forceCancel = false)
     {
+        var localStart = DateTime.SpecifyKind(new DateTime(startDateTime.Ticks), DateTimeKind.Local);
+        var utcStart = localStart.ToUniversalTime();
+
+        var localEnd = DateTime.SpecifyKind(new DateTime(endDateTime.Ticks), DateTimeKind.Local);
+        var utcEnd = localEnd.ToUniversalTime();
+
+        var conflictingAppointments = await _context.Appointments
+            .Include(a => a.Patient).ThenInclude(p => p.User)
+            .Include(a => a.Doctor).ThenInclude(d => d.User)
+            .Where(a => a.DoctorId == doctorId &&
+                        a.IsActive &&
+                        !a.IsCancelled &&
+                        (a.Status == AppointmentStatus.Scheduled || a.Status == AppointmentStatus.Confirmed) &&
+                        a.AppointmentDate < utcEnd &&
+                        a.AppointmentDate.AddMinutes(a.Duration) > utcStart)
+            .ToListAsync();
+
+        if (conflictingAppointments.Any() && !forceCancel)
+        {
+            return (false, "You have an active schedule, and if you add the absence the appointment will be cancelled");
+        }
+
         var availability = new DoctorAvailability
         {
             DoctorId = doctorId,
@@ -110,6 +163,82 @@ public class DoctorAvailabilityService : IDoctorAvailabilityService
         };
 
         _context.DoctorAvailabilities.Add(availability);
+
+        if (conflictingAppointments.Any() && forceCancel)
+        {
+            var doctor = await _context.Doctors
+                .Include(d => d.User)
+                .FirstOrDefaultAsync(d => d.Id == doctorId);
+            
+            var requestingUserId = doctor?.UserId ?? Guid.Empty;
+
+            foreach (var appointment in conflictingAppointments)
+            {
+                var cancellationReason = $"Provider Absence ({reason})";
+                appointment.Status = AppointmentStatus.Cancelled;
+                appointment.IsCancelled = true;
+                appointment.CancelledAt = DateTime.Now;
+                appointment.CancellationReason = cancellationReason;
+
+                var appointmentId = appointment.Id;
+                var pEmail = appointment.Patient.User.Email!;
+                var dEmail = appointment.Doctor.User.Email!;
+
+                // Fire-and-forget cancellation notifications
+                _ = Task.Run(async () =>
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var emailSvc = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                    var auditLogService = scope.ServiceProvider.GetService<IAuditLogService>();
+                    var notifSvc = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+                    if (auditLogService != null)
+                    {
+                        await auditLogService.LogAsync(
+                            requestingUserId,
+                            "Appointment cancelled",
+                            $"Appointment {appointmentId} cancelled by Doctor due to absence. Reason: {cancellationReason}",
+                            "0.0.0.0", "Service", "Appointment", appointmentId.ToString());
+                    }
+
+                    try
+                    {
+                        await emailSvc.SendAppointmentCancelledEmailAsync(pEmail, appointment, cancellationReason);
+                        await emailSvc.SendAppointmentCancelledEmailAsync(dEmail, appointment, cancellationReason);
+                    }
+                    catch (Exception ex) 
+                    {
+                        Console.WriteLine($"Background cancel email failed for appointment {appointmentId}: {ex.Message}");
+                    }
+
+                    try
+                    {
+                        var patNotification = new SystemNotificationDto
+                        {
+                            Title = "Appointment Cancelled",
+                            Message = $"Your appointment with Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName} on {appointment.AppointmentDate:g} has been cancelled. Reason: {cancellationReason}",
+                            Type = "AppointmentCancelled",
+                            ReferenceId = appointmentId.ToString()
+                        };
+                        await notifSvc.PersistAndSendNotificationAsync(appointment.Patient.UserId, patNotification);
+
+                        var docNotification = new SystemNotificationDto
+                        {
+                            Title = "Appointment Cancelled",
+                            Message = $"Your appointment with Patient {appointment.Patient.User.FirstName} {appointment.Patient.User.LastName} on {appointment.AppointmentDate:g} has been cancelled. Reason: {cancellationReason}",
+                            Type = "AppointmentCancelled",
+                            ReferenceId = appointmentId.ToString()
+                        };
+                        await notifSvc.PersistAndSendNotificationAsync(appointment.Doctor.UserId, docNotification);
+                    }
+                    catch (Exception sigEx)
+                    {
+                        Console.WriteLine($"Failed to persist/send cancellation notifications for appointment {appointmentId}: {sigEx.Message}");
+                    }
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         return (true, "Time blocked successfully.");

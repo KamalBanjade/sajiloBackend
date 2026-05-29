@@ -88,6 +88,20 @@ public class DoctorAvailabilityController : ControllerBase
         return Ok(ApiResponse<object>.SuccessResult(null, result.Message));
     }
 
+    [HttpGet("check-conflicts")]
+    public async Task<ActionResult<ApiResponse<int>>> CheckConflicts([FromQuery] DateTime startDateTime, [FromQuery] DateTime endDateTime)
+    {
+        var user = await _userManager.Users
+            .Include(u => u.DoctorProfile)
+            .FirstOrDefaultAsync(u => u.Id == GetUserId());
+
+        if (user?.DoctorProfile == null)
+            return BadRequest(ApiResponse<int>.FailureResult("Doctor profile not found."));
+
+        var count = await _availabilityService.GetConflictingAppointmentsCountAsync(user.DoctorProfile.Id, startDateTime, endDateTime);
+        return Ok(ApiResponse<int>.SuccessResult(count, "Conflict check completed."));
+    }
+
     [HttpPost("block")]
     public async Task<ActionResult<ApiResponse<object>>> BlockTime(BlockTimeDTO request)
     {
@@ -98,7 +112,7 @@ public class DoctorAvailabilityController : ControllerBase
         if (user?.DoctorProfile == null)
             return BadRequest(ApiResponse<object>.FailureResult("Doctor profile not found."));
 
-        var result = await _availabilityService.BlockTimeAsync(user.DoctorProfile.Id, request.StartDateTime, request.EndDateTime, request.Reason);
+        var result = await _availabilityService.BlockTimeAsync(user.DoctorProfile.Id, request.StartDateTime, request.EndDateTime, request.Reason, request.ForceCancel);
         
         if (!result.Success)
             return BadRequest(ApiResponse<object>.FailureResult(result.Message));

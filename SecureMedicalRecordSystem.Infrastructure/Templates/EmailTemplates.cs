@@ -116,7 +116,7 @@ public static class EmailTemplates
 
         <div style='margin-top: 24px; padding: 18px; background-color: #F8FAFC; border-radius: 12px; border: 1px solid #E2E8F0; text-align: center;'>
             <p style='margin: 0; font-size: 13px; color: #475569; font-weight: 500;'>Once your credentials are configured, you can log in to the portal at:</p>
-            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='https://sajilo-swasthya.vercel.app/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: https://sajilo-swasthya.vercel.app/</a></p>
+            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='http://localhost:3000/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: http://localhost:3000/</a></p>
         </div>
 
         <h3 style='font-family: ""Outfit"", sans-serif; font-size: 14px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 32px; color: {ColorPrimary}; text-transform: uppercase; letter-spacing: 0.5px;'>Clinical Onboarding Guide</h3>
@@ -161,7 +161,7 @@ public static class EmailTemplates
 
         <div style='margin-top: 24px; padding: 18px; background-color: #F8FAFC; border-radius: 12px; border: 1px solid #E2E8F0; text-align: center;'>
             <p style='margin: 0; font-size: 13px; color: #475569; font-weight: 500;'>Once activated, you can log in to the portal at:</p>
-            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='https://sajilo-swasthya.vercel.app/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: https://sajilo-swasthya.vercel.app/</a></p>
+            <p style='margin: 8px 0 0; font-size: 15px; font-weight: 700;'><a href='http://localhost:3000/' style='color: #00A388; text-decoration: none; border-bottom: 2px solid #00A388; padding-bottom: 2px;'>Login here: http://localhost:3000/</a></p>
         </div>
 
         <div style='margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 20px;'>
@@ -215,6 +215,7 @@ public static class EmailTemplates
 
     public static string GetAppointmentScheduledTemplate(string patientName, string doctorName, DateTime date, string reason)
     {
+        var localDate = date.Kind == DateTimeKind.Utc ? date.ToLocalTime() : date;
         var header = GetHeaderHtml("APPOINTMENT REQUESTED", ColorPrimary);
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 22px; margin-top: 0; color: {ColorPrimary};'>Dear {patientName},</h2>
@@ -228,7 +229,7 @@ public static class EmailTemplates
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Requested Date</td>
-                    <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{date:f}</td>
+                    <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{localDate:f}</td>
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Reason for Visit</td>
@@ -244,6 +245,7 @@ public static class EmailTemplates
 
     public static string GetAppointmentConfirmedTemplate(string patientName, string doctorName, DateTime date, string department)
     {
+        var localDate = date.Kind == DateTimeKind.Utc ? date.ToLocalTime() : date;
         var header = GetHeaderHtml("BOOKING CONFIRMED", ColorSecondary);
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 22px; margin-top: 0; color: {ColorSecondary};'>Dear {patientName},</h2>
@@ -261,7 +263,7 @@ public static class EmailTemplates
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 600;'>Date & Time</td>
-                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 800; font-size: 15px;'>{date:f}</td>
+                    <td style='padding: 8px 0; color: {ColorSecondary}; font-weight: 800; font-size: 15px;'>{localDate:f}</td>
                 </tr>
             </table>
         </div>
@@ -275,23 +277,35 @@ public static class EmailTemplates
 
     public static string GetAppointmentCancelledTemplate(string userName, DateTime date, string reason, string role)
     {
+        var localDate = date.Kind == DateTimeKind.Utc ? date.ToLocalTime() : date;
         var header = GetHeaderHtml("APPOINTMENT CANCELLED", ColorPrimary);
+        
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 22px; margin-top: 0; color: {ColorPrimary};'>Dear {userName},</h2>
-        <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Please be advised that your scheduled clinical session on <strong>{date:f}</strong> has been cancelled.</p>
+        <p style='font-size: 15px; color: #334155; margin-bottom: 24px;'>Please be advised that your scheduled clinical session on <strong>{localDate:f}</strong> has been cancelled.</p>
         
         <div style='background-color: #FFF1F2; border-left: 4px solid #F43F5E; padding: 20px; border-radius: 12px; margin: 24px 0;'>
             <h3 style='font-family: ""Outfit"", sans-serif; font-size: 14px; margin-top: 0; margin-bottom: 8px; color: #E11D48; text-transform: uppercase; letter-spacing: 0.5px;'>Cancellation Reason</h3>
             <p style='margin: 0; font-size: 15px; color: #9F1239; font-weight: 700;'>{reason}</p>
-        </div>
+        </div>";
 
-        {(role == "Patient" ? $"<p style='font-size: 14px; color: #334155;'>If you wish to reschedule this appointment, please visit the <strong>Sajilo Swasthya</strong> patient dashboard or contact the clinic reception immediately.</p>" : "")}";
+        if (role == "Patient")
+        {
+            body += $@"
+            <p style='font-size: 14px; color: #334155; margin-bottom: 24px;'>We apologize for any inconvenience caused. You can easily reschedule your session by selecting a new date and time on the patient portal:</p>
+            {GetButtonHtml("Reschedule Now", "http://localhost:3000/appointments/new", ColorSecondary)}
+            <div style='margin-top: 24px; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;'>
+                <p style='margin: 0; font-size: 13px; color: #475569;'>Need assistance? You can also contact the clinic reception desk to reschedule.</p>
+            </div>";
+        }
 
         return BuildEmailHtml(header, body);
     }
 
     public static string GetAppointmentRescheduledTemplate(string patientName, string doctorName, DateTime oldDate, DateTime newDate)
     {
+        var localOldDate = oldDate.Kind == DateTimeKind.Utc ? oldDate.ToLocalTime() : oldDate;
+        var localNewDate = newDate.Kind == DateTimeKind.Utc ? newDate.ToLocalTime() : newDate;
         var header = GetHeaderHtml("RESCHEDULE NOTICE", ColorPrimary);
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 22px; margin-top: 0; color: {ColorPrimary};'>Dear {patientName},</h2>
@@ -301,11 +315,11 @@ public static class EmailTemplates
             <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; width: 35%; font-weight: 600;'>Original Time</td>
-                    <td style='padding: 8px 0; color: {ColorNeutralLight}; text-decoration: line-through;'>{oldDate:f}</td>
+                    <td style='padding: 8px 0; color: {ColorNeutralLight}; text-decoration: line-through;'>{localOldDate:f}</td>
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 600;'>Rescheduled</td>
-                    <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 800; font-size: 15px;'>{newDate:f}</td>
+                    <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 800; font-size: 15px;'>{localNewDate:f}</td>
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Attending</td>
@@ -321,6 +335,7 @@ public static class EmailTemplates
 
     public static string GetAppointmentReminderTemplate(string patientName, string doctorName, DateTime date)
     {
+        var localDate = date.Kind == DateTimeKind.Utc ? date.ToLocalTime() : date;
         var header = GetHeaderHtml("UPCOMING VISIT REMINDER", ColorPrimary);
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 22px; margin-top: 0; color: {ColorPrimary};'>Dear {patientName},</h2>
@@ -334,7 +349,7 @@ public static class EmailTemplates
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Date & Time</td>
-                    <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 800; font-size: 15px;'>{date:f}</td>
+                    <td style='padding: 8px 0; color: {ColorPrimary}; font-weight: 800; font-size: 15px;'>{localDate:f}</td>
                 </tr>
             </table>
         </div>
@@ -346,6 +361,7 @@ public static class EmailTemplates
 
     public static string GetDoctorNewAppointmentTemplate(string doctorName, string patientName, DateTime date, string reason)
     {
+        var localDate = date.Kind == DateTimeKind.Utc ? date.ToLocalTime() : date;
         var header = GetHeaderHtml("NEW PATIENT BOOKING", ColorPrimary);
         var body = $@"
         <h2 style='font-family: ""Outfit"", sans-serif; font-size: 22px; margin-top: 0; color: {ColorPrimary};'>Dear Dr. {doctorName},</h2>
@@ -359,7 +375,7 @@ public static class EmailTemplates
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Date & Time</td>
-                    <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{date:f}</td>
+                    <td style='padding: 8px 0; color: {ColorNeutralDark}; font-weight: 700;'>{localDate:f}</td>
                 </tr>
                 <tr>
                     <td style='padding: 8px 0; color: {ColorNeutralLight}; font-weight: 600;'>Reason for Visit</td>
@@ -369,7 +385,7 @@ public static class EmailTemplates
         </div>
 
         <p style='font-size: 14px; color: #334155; margin-bottom: 20px;'>You can review the patient's historical medical records, charts, and pre-populate observation templates directly inside your Doctor Dashboard.</p>
-        {GetButtonHtml("Access Doctor Dashboard", "https://sajilo-swasthya.vercel.app/doctor", ColorPrimary)}";
+        {GetButtonHtml("Access Doctor Dashboard", "http://localhost:3000/doctor", ColorPrimary)}";
 
         return BuildEmailHtml(header, body);
     }

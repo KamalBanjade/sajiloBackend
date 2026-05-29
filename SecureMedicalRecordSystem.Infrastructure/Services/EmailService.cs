@@ -263,8 +263,12 @@ public class EmailService : IEmailService
 
     private string GenerateIcsContent(Appointment appointment)
     {
-        var start = appointment.AppointmentDate.ToString("yyyyMMddTHHmmssZ");
-        var end = appointment.AppointmentDate.AddMinutes(appointment.Duration).ToString("yyyyMMddTHHmmssZ");
+        var startUtc = appointment.AppointmentDate.Kind == DateTimeKind.Utc
+            ? appointment.AppointmentDate
+            : appointment.AppointmentDate.ToUniversalTime();
+        var endUtc = startUtc.AddMinutes(appointment.Duration);
+        var start = startUtc.ToString("yyyyMMddTHHmmssZ");
+        var end = endUtc.ToString("yyyyMMddTHHmmssZ");
         var now = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
         var doctorName = appointment.Doctor?.User != null ? $"Dr. {appointment.Doctor.User.FirstName} {appointment.Doctor.User.LastName}" : "Doctor";
 

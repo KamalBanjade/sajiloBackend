@@ -125,6 +125,25 @@ public class HealthRecordService : IHealthRecordService
             await _context.PatientHealthRecords.AddAsync(record);
             await _context.SaveChangesAsync();
 
+            // 5.1 If this record is created for an appointment, automatically complete it:
+            if (request.AppointmentId.HasValue)
+            {
+                var appointment = await _context.Appointments.FindAsync(request.AppointmentId.Value);
+                if (appointment != null && appointment.Status != AppointmentStatus.Completed)
+                {
+                    appointment.Status = AppointmentStatus.Completed;
+                    appointment.IsCompleted = true;
+                    appointment.CompletedAt = DateTime.UtcNow;
+                    appointment.ConsultationNotes = string.IsNullOrWhiteSpace(request.DoctorNotes) ? null : request.DoctorNotes.Trim();
+
+                    await _auditLogService.LogAsync(
+                        doctorId,
+                        "Appointment completed automatically",
+                        $"Appointment {appointment.Id} marked completed automatically on clinical record generation.",
+                        "0.0.0.0", "Service", "Appointment", appointment.Id.ToString());
+                }
+            }
+
             // 6. If using template or custom sections, apply fields:
             if (request.Sections != null && request.Sections.Any())
             {
