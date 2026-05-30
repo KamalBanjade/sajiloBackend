@@ -159,7 +159,7 @@ public class PatientStatisticsService : IPatientStatisticsService
             .Select(a => {
                 var status = a.Status;
                 if (!a.IsCompleted && !a.IsCancelled && 
-                    (status == AppointmentStatus.Scheduled || status == AppointmentStatus.Confirmed || status == AppointmentStatus.InProgress) &&
+                    (status == AppointmentStatus.Confirmed || status == AppointmentStatus.InProgress) &&
                     now > a.AppointmentDate.AddMinutes(a.Duration))
                 {
                     return "Overdue";

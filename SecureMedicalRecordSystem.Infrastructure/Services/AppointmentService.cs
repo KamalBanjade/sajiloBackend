@@ -237,8 +237,7 @@ public class AppointmentService : IAppointmentService
         if (!includeHistory)
         {
             var cutoffDate = DateTime.UtcNow.AddDays(-7);
-            query = query.Where(a => a.AppointmentDate >= cutoffDate || 
-                                   a.Status == AppointmentStatus.Scheduled ||
+            query = query.Where(a => a.AppointmentDate >= cutoffDate ||
                                    a.Status == AppointmentStatus.Confirmed);
         }
 
@@ -338,7 +337,7 @@ public class AppointmentService : IAppointmentService
             CompletedAppointments = appointments.Count(a => a.Status == AppointmentStatus.Completed),
             UpcomingAppointments = appointments.Count(a => a.Status == AppointmentStatus.Confirmed && a.AppointmentDate > now),
             CancelledAppointments = appointments.Count(a => a.Status == AppointmentStatus.Cancelled),
-            PendingConfirmation = appointments.Count(a => a.Status == AppointmentStatus.Scheduled && a.AppointmentDate > now),
+            PendingConfirmation = 0, // Appointments are auto-confirmed; no Scheduled state is used
             TodayAppointments = appointments.Count(a => a.AppointmentDate >= today && a.AppointmentDate < endOfToday && !a.IsCancelled)
         };
 
@@ -457,8 +456,8 @@ public class AppointmentService : IAppointmentService
 
         var oldDate = appointment.AppointmentDate;
         appointment.AppointmentDate = newAppointmentDate;
-        appointment.Status = AppointmentStatus.Scheduled; // Re-requires confirmation
-        appointment.ConfirmedAt = null;
+        appointment.Status = AppointmentStatus.Confirmed;
+        appointment.ConfirmedAt = DateTime.Now;
 
         await _context.SaveChangesAsync();
 
@@ -547,52 +546,20 @@ public class AppointmentService : IAppointmentService
         Guid appointmentId, 
         Guid requestingUserId)
     {
+        // Appointments are now auto-confirmed when created or rescheduled.
+        // This method is kept for API compatibility but is effectively a no-op.
         var appointment = await _context.Appointments
-            .Include(a => a.Patient).ThenInclude(p => p.User)
             .FirstOrDefaultAsync(a => a.Id == appointmentId);
 
         if (appointment == null) return (false, "Appointment not found.");
 
-        if (appointment.Status != AppointmentStatus.Scheduled)
-            return (false, "Only scheduled appointments can be confirmed.");
+        if (appointment.Status == AppointmentStatus.Confirmed)
+            return (true, "Appointment is already confirmed.");
 
+        // Fallback: if somehow in another state, confirm it
         appointment.Status = AppointmentStatus.Confirmed;
         appointment.ConfirmedAt = DateTime.Now;
-
         await _context.SaveChangesAsync();
-
-        // Fire-and-forget confirmation notification
-        var confirmEmail = appointment.Patient.User.Email!;
-        _ = Task.Run(async () =>
-        {
-            using var scope = _scopeFactory.CreateScope();
-            var emailSvc = scope.ServiceProvider.GetRequiredService<IEmailService>();
-            try { await emailSvc.SendAppointmentConfirmedEmailAsync(confirmEmail, appointment); }
-            catch (Exception ex) { Log.Error(ex, "Background confirm email failed for appointment {Id}", appointment.Id); }
-        });
-
-        // Persist + push real-time SignalR notifications
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var notifSvc = scope.ServiceProvider.GetRequiredService<INotificationService>();
-
-                var patNotification = new SystemNotificationDto
-                {
-                    Title = "Appointment Confirmed",
-                    Message = $"Your appointment on {appointment.AppointmentDate:g} has been confirmed.",
-                    Type = "AppointmentConfirmed",
-                    ReferenceId = appointment.Id.ToString()
-                };
-                await notifSvc.PersistAndSendNotificationAsync(appointment.Patient.UserId, patNotification);
-            }
-            catch (Exception sigEx)
-            {
-                _logger.LogError(sigEx, "Failed to persist/send confirm notifications for appointment {Id}", appointment.Id);
-            }
-        });
 
         return (true, "Appointment confirmed.");
     }
@@ -902,10 +869,9 @@ public class AppointmentService : IAppointmentService
         var now = DateTime.UtcNow;
         var displayStatus = appointment.Status.ToString();
 
-        // Dynamic status transition: Scheduled/Confirmed/InProgress -> Overdue if time exceeded
+        // Dynamic status transition: Confirmed/InProgress -> Overdue if time exceeded
         if (!appointment.IsCompleted && !appointment.IsCancelled && 
-            (appointment.Status == AppointmentStatus.Scheduled || 
-             appointment.Status == AppointmentStatus.Confirmed || 
+            (appointment.Status == AppointmentStatus.Confirmed || 
              appointment.Status == AppointmentStatus.InProgress) &&
             now > appointment.AppointmentDate.AddMinutes(appointment.Duration))
         {
@@ -1000,16 +966,16 @@ public class AppointmentService : IAppointmentService
                 AppointmentDate = appointmentDate,
                 Duration = duration,
                 ReasonForVisit = "Follow-up appointment",
-                Status = AppointmentStatus.Scheduled,
+                Status = AppointmentStatus.Confirmed,
                 ParentAppointmentId = originalAppointmentId,
                 CreatedAt = DateTime.Now,
                 ScheduledAt = appointmentDate,
+                ConfirmedAt = DateTime.Now,
                 IsActive = true,
                 IsCancelled = false,
                 IsCompleted = false,
                 CreatedBy = doctorId
             };
-;
 
             _context.Appointments.Add(followUpAppointment);
             await _context.SaveChangesAsync();
