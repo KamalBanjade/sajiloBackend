@@ -150,15 +150,11 @@ public class AuthService : IAuthService
 
                     await transaction.CommitAsync();
 
-                    // 10. Generate Confirmation Token (AFTER commit to avoid transaction issues)
+                    // 10. Generate Confirmation Token (AFTER commit)
                     var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawConfirmToken))
-                        .Replace('+', '-')
-                        .Replace('/', '_')
-                        .TrimEnd('=');
                     var template = _urlProvider.EmailConfirmationLinkTemplate;
                     var confirmationLink = template
-                        .Replace("[TOKEN]", base64UrlToken)
+                        .Replace("[TOKEN]", Uri.EscapeDataString(rawConfirmToken))
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 11. Send Background Email (ONLY after successful commit)
@@ -690,14 +686,10 @@ public class AuthService : IAuthService
 
         // Generate Confirmation Token (Base64Url-encoded for URL safety)
         var rawResendToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawResendToken))
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
         var template = _urlProvider.EmailConfirmationLinkTemplate;
         
         var confirmationLink = template
-            .Replace("[TOKEN]", base64UrlToken)
+            .Replace("[TOKEN]", Uri.EscapeDataString(rawResendToken))
             .Replace("[USERID]", user.Id.ToString());
         
         var emailAddr = user.Email!;
@@ -727,27 +719,7 @@ public class AuthService : IAuthService
         Log.Information("ConfirmEmail - UserId: {UserId}, EmailConfirmed: {EmailConfirmed}, SecurityStamp: {SecurityStamp}, TokenLength: {TokenLength}", 
             userId, user.EmailConfirmed, securityStamp, token?.Length ?? 0);
 
-        var base64 = token.Replace('-', '+').Replace('_', '/');
-        switch (base64.Length % 4)
-        {
-            case 2: base64 += "=="; break;
-            case 3: base64 += "="; break;
-        }
-        Log.Information("ConfirmEmail - Base64AfterReplace: {Base64}, Length: {Len}", base64, base64.Length);
-        byte[] tokenBytes;
-        try
-        {
-            tokenBytes = Convert.FromBase64String(base64);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "ConfirmEmail - Base64 decode failed for: {Base64}", base64);
-            return (false, "Invalid token format.");
-        }
-        var rawToken = Encoding.UTF8.GetString(tokenBytes);
-        Log.Information("ConfirmEmail - Decoded token preview: {Preview}, Length: {Len}", rawToken.Substring(0, Math.Min(50, rawToken.Length)), rawToken.Length);
-        
-        var result = await _userManager.ConfirmEmailAsync(user, rawToken);
+        var result = await _userManager.ConfirmEmailAsync(user, token);
         Log.Information("ConfirmEmail - Result.Succeeded: {Succeeded}, Errors: {Errors}", result.Succeeded, string.Join(",", result.Errors.Select(e => e.Code + ":" + e.Description)));
         if (result.Succeeded)
         {
