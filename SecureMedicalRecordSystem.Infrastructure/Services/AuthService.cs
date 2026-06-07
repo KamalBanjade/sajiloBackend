@@ -118,9 +118,8 @@ public class AuthService : IAuthService
                     };
                     _context.Patients.Add(patient);
 
-                    // 5.1 Mandatory 2FA Setup
+                    // 5.1 Mandatory 2FA Setup (ResetAuthenticatorKeyAsync already updates security stamp internally)
                     await _userManager.ResetAuthenticatorKeyAsync(user);
-                    await _userManager.UpdateSecurityStampAsync(user);
 
                     var totpSecret = await _userManager.GetAuthenticatorKeyAsync(user);
                     user.TOTPSecret = totpSecret;
