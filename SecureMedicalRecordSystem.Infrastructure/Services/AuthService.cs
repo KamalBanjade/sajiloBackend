@@ -734,7 +734,19 @@ public class AuthService : IAuthService
             case 2: base64 += "=="; break;
             case 3: base64 += "="; break;
         }
-        var rawToken = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+        Log.Information("ConfirmEmail - Base64AfterReplace: {Base64}, Length: {Len}", base64, base64.Length);
+        byte[] tokenBytes;
+        try
+        {
+            tokenBytes = Convert.FromBase64String(base64);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "ConfirmEmail - Base64 decode failed for: {Base64}", base64);
+            return (false, "Invalid token format.");
+        }
+        var rawToken = Encoding.UTF8.GetString(tokenBytes);
+        Log.Information("ConfirmEmail - Decoded token preview: {Preview}, Length: {Len}", rawToken.Substring(0, Math.Min(50, rawToken.Length)), rawToken.Length);
         
         var result = await _userManager.ConfirmEmailAsync(user, rawToken);
         if (result.Succeeded)
