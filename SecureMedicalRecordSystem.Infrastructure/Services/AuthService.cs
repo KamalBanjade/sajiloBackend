@@ -130,18 +130,6 @@ public class AuthService : IAuthService
                     
                     await _userManager.UpdateAsync(user);
 
-                    // 8. Generate Confirmation Token (must be AFTER security stamp update)
-                    var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawConfirmToken))
-                        .Replace('+', '-')
-                        .Replace('/', '_')
-                        .TrimEnd('=');
-                    var template = _urlProvider.EmailConfirmationLinkTemplate;
-                    
-                    var confirmationLink = template
-                        .Replace("[TOKEN]", base64UrlToken)
-                        .Replace("[USERID]", user.Id.ToString());
-
                     // 9. Generate TOTP QR Data
                     var issuer = "MedicalRecordSystem";
                     var accountName = $"{issuer}:{user.Email}";
@@ -162,7 +150,18 @@ public class AuthService : IAuthService
 
                     await transaction.CommitAsync();
 
-                    // 10. Send Background Email (ONLY after successful commit)
+                    // 10. Generate Confirmation Token (AFTER commit to avoid transaction issues)
+                    var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawConfirmToken))
+                        .Replace('+', '-')
+                        .Replace('/', '_')
+                        .TrimEnd('=');
+                    var template = _urlProvider.EmailConfirmationLinkTemplate;
+                    var confirmationLink = template
+                        .Replace("[TOKEN]", base64UrlToken)
+                        .Replace("[USERID]", user.Id.ToString());
+
+                    // 11. Send Background Email (ONLY after successful commit)
                     var emailAddr = user.Email!;
                     _ = Task.Run(async () =>
                     {
