@@ -716,6 +716,10 @@ public class AuthService : IAuthService
             return (false, "Email is already confirmed.");
         }
 
+        var securityStamp = await _userManager.GetSecurityStampAsync(user);
+        Log.Information("ConfirmEmail - UserId: {UserId}, EmailConfirmed: {EmailConfirmed}, SecurityStamp: {SecurityStamp}, TokenLength: {TokenLength}", 
+            userId, user.EmailConfirmed, securityStamp, token?.Length ?? 0);
+
         var result = await _userManager.ConfirmEmailAsync(user, token);
         if (result.Succeeded)
         {
