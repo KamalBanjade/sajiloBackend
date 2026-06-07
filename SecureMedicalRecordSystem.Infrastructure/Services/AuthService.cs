@@ -712,7 +712,13 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return (false, "User not found.");
 
-        var result = await _userManager.ConfirmEmailAsync(user, token);
+        if (user.EmailConfirmed)
+        {
+            return (false, "Email is already confirmed.");
+        }
+
+        var decodedToken = WebUtility.UrlDecode(token);
+        var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
         if (result.Succeeded)
         {
             await _cache.InvalidateAsync($"user:profile:{user.Id}");
@@ -720,7 +726,8 @@ public class AuthService : IAuthService
             return (true, "Email confirmed successfully.");
         }
 
-        return (false, "Email confirmation failed.");
+        var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+        return (false, $"Email confirmation failed: {errors}");
     }
 
     public async Task<(bool Success, string Message)> ForgotPasswordAsync(string email)
