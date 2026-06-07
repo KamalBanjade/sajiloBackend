@@ -61,11 +61,6 @@ public class LocalUrlProvider : ILocalUrlProvider
 
         _emailConfirmationLinkTemplate = new Lazy<string>(() =>
         {
-            var configured = configuration["EmailTemplates:EmailConfirmationLinkTemplate"];
-            if (!string.IsNullOrWhiteSpace(configured))
-            {
-                return configured;
-            }
             return "https://sajilo-swasthya.vercel.app/confirm-email?token=[TOKEN]&userId=[USERID]";
         });
 
