@@ -146,7 +146,7 @@ public class AuthService : IAuthService
 
                     // 8. Generate Confirmation Token (Base64Url-encoded so it survives URL round-trips)
                     var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var encodedConfirmToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawConfirmToken));
+                    var encodedConfirmToken = Uri.EscapeDataString(rawConfirmToken);
                     var template = _urlProvider.EmailConfirmationLinkTemplate;
                     
                     var confirmationLink = template
@@ -687,7 +687,7 @@ public class AuthService : IAuthService
 
         // Base64Url-encode the token so it survives URL round-trips intact
         var rawResendToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var encodedResendToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawResendToken));
+        var encodedResendToken = Uri.EscapeDataString(rawResendToken);
         var template = _urlProvider.EmailConfirmationLinkTemplate;
         
         var confirmationLink = template
@@ -712,11 +712,10 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return (false, "User not found.");
 
-        // Decode the Base64Url-encoded token back to the raw Identity token
         string rawToken;
         try
         {
-            rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+            rawToken = Uri.UnescapeDataString(token);
         }
         catch (FormatException)
         {

@@ -66,7 +66,7 @@ public class LocalUrlProvider : ILocalUrlProvider
             {
                 return configured;
             }
-            return $"{FrontendBaseUrl}/confirm-email?token=[TOKEN]&userId=[USERID]";
+            return "https://sajilo-swasthya.vercel.app/confirm-email?token=[TOKEN]&userId=[USERID]";
         });
 
         _passwordResetLinkTemplate = new Lazy<string>(() =>
