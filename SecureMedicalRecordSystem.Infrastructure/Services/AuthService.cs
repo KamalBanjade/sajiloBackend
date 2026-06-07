@@ -11,6 +11,7 @@ using SecureMedicalRecordSystem.Core.Interfaces;
 using SecureMedicalRecordSystem.Infrastructure.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Net;
 using System.Text;
 using Serilog;
 
