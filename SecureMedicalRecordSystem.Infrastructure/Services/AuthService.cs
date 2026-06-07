@@ -145,12 +145,16 @@ public class AuthService : IAuthService
                     var frontendUrl = _urlProvider.FrontendIpBaseUrl;
                     var accessUrl = $"{frontendUrl}/access/{accessToken}";
 
-                    // 8. Generate Confirmation Token
+                    // 8. Generate Confirmation Token (Base64Url-encoded for URL safety)
                     var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawConfirmToken))
+                        .Replace('+', '-')
+                        .Replace('/', '_')
+                        .TrimEnd('=');
                     var template = _urlProvider.EmailConfirmationLinkTemplate;
                     
                     var confirmationLink = template
-                        .Replace("[TOKEN]", rawConfirmToken)
+                        .Replace("[TOKEN]", base64UrlToken)
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 9. Log Action
@@ -685,12 +689,16 @@ public class AuthService : IAuthService
             return (false, "Email is already verified.");
         }
 
-        // Generate Confirmation Token
+        // Generate Confirmation Token (Base64Url-encoded for URL safety)
         var rawResendToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawResendToken))
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
         var template = _urlProvider.EmailConfirmationLinkTemplate;
         
         var confirmationLink = template
-            .Replace("[TOKEN]", rawResendToken)
+            .Replace("[TOKEN]", base64UrlToken)
             .Replace("[USERID]", user.Id.ToString());
         
         var emailAddr = user.Email!;
@@ -720,7 +728,15 @@ public class AuthService : IAuthService
         Log.Information("ConfirmEmail - UserId: {UserId}, EmailConfirmed: {EmailConfirmed}, SecurityStamp: {SecurityStamp}, TokenLength: {TokenLength}", 
             userId, user.EmailConfirmed, securityStamp, token?.Length ?? 0);
 
-        var result = await _userManager.ConfirmEmailAsync(user, token);
+        var base64 = token.Replace('-', '+').Replace('_', '/');
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        var rawToken = Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+        
+        var result = await _userManager.ConfirmEmailAsync(user, rawToken);
         if (result.Succeeded)
         {
             await _cache.InvalidateAsync($"user:profile:{user.Id}");
