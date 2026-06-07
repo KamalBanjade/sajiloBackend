@@ -145,13 +145,12 @@ public class AuthService : IAuthService
                     var frontendUrl = _urlProvider.FrontendIpBaseUrl;
                     var accessUrl = $"{frontendUrl}/access/{accessToken}";
 
-                    // 8. Generate Confirmation Token (Base64Url-encoded so it survives URL round-trips)
+                    // 8. Generate Confirmation Token
                     var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var encodedConfirmToken = Uri.EscapeDataString(rawConfirmToken);
                     var template = _urlProvider.EmailConfirmationLinkTemplate;
                     
                     var confirmationLink = template
-                        .Replace("[TOKEN]", encodedConfirmToken)
+                        .Replace("[TOKEN]", rawConfirmToken)
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 9. Log Action
@@ -686,13 +685,12 @@ public class AuthService : IAuthService
             return (false, "Email is already verified.");
         }
 
-        // Base64Url-encode the token so it survives URL round-trips intact
+        // Generate Confirmation Token
         var rawResendToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var encodedResendToken = Uri.EscapeDataString(rawResendToken);
         var template = _urlProvider.EmailConfirmationLinkTemplate;
         
         var confirmationLink = template
-            .Replace("[TOKEN]", encodedResendToken)
+            .Replace("[TOKEN]", rawResendToken)
             .Replace("[USERID]", user.Id.ToString());
         
         var emailAddr = user.Email!;
