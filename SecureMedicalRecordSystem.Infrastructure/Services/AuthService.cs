@@ -712,17 +712,7 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return (false, "User not found.");
 
-        string rawToken;
-        try
-        {
-            rawToken = Uri.UnescapeDataString(token);
-        }
-        catch (FormatException)
-        {
-            return (false, "Invalid or malformed confirmation token.");
-        }
-
-        var result = await _userManager.ConfirmEmailAsync(user, rawToken);
+        var result = await _userManager.ConfirmEmailAsync(user, token);
         if (result.Succeeded)
         {
             await _cache.InvalidateAsync($"user:profile:{user.Id}");
