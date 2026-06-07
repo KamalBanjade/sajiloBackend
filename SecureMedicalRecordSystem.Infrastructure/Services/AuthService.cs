@@ -130,7 +130,19 @@ public class AuthService : IAuthService
                     
                     await _userManager.UpdateAsync(user);
 
-                    // 6. Generate TOTP QR Data
+                    // 8. Generate Confirmation Token (must be AFTER security stamp update)
+                    var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawConfirmToken))
+                        .Replace('+', '-')
+                        .Replace('/', '_')
+                        .TrimEnd('=');
+                    var template = _urlProvider.EmailConfirmationLinkTemplate;
+                    
+                    var confirmationLink = template
+                        .Replace("[TOKEN]", base64UrlToken)
+                        .Replace("[USERID]", user.Id.ToString());
+
+                    // 9. Generate TOTP QR Data
                     var issuer = "MedicalRecordSystem";
                     var accountName = $"{issuer}:{user.Email}";
                     var totpQRData = $"otpauth://totp/{Uri.EscapeDataString(accountName)}" +
@@ -144,18 +156,6 @@ public class AuthService : IAuthService
                     var (accessToken, expiresAt) = await _qrTokenService.GenerateNormalAccessTokenAsync(patient.Id, 30);
                     var frontendUrl = _urlProvider.FrontendIpBaseUrl;
                     var accessUrl = $"{frontendUrl}/access/{accessToken}";
-
-                    // 8. Generate Confirmation Token (Base64Url-encoded for URL safety)
-                    var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                    var base64UrlToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawConfirmToken))
-                        .Replace('+', '-')
-                        .Replace('/', '_')
-                        .TrimEnd('=');
-                    var template = _urlProvider.EmailConfirmationLinkTemplate;
-                    
-                    var confirmationLink = template
-                        .Replace("[TOKEN]", base64UrlToken)
-                        .Replace("[USERID]", user.Id.ToString());
 
                     // 9. Log Action
                     await _auditLogService.LogAsync(user.Id, "Patient Registration", "Registered as Patient with mandatory 2FA", "N/A", "System");
