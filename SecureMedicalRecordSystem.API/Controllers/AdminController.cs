@@ -141,6 +141,30 @@ public class AdminController : ControllerBase
         return Ok(ApiResponse.SuccessResult(result.Data, result.Message));
     }
 
+    [HttpGet("users/{id}")]
+    public async Task<IActionResult> GetUserById(Guid id)
+    {
+        var user = await _authService.GetUserByIdAsync(id);
+        if (user == null) return NotFound(ApiResponse.FailureResult("User not found."));
+
+        var now = DateTimeOffset.UtcNow;
+        return Ok(ApiResponse.SuccessResult(new
+        {
+            Id = user.Id,
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role,
+            IsActive = user.IsActive && (user.LockoutEnd == null || user.LockoutEnd <= now),
+            EmailConfirmed = user.EmailConfirmed,
+            CreatedAt = user.CreatedAt,
+            LastLoginAt = user.LastLoginAt,
+            PhoneNumber = user.PhoneNumber,
+            ProfilePictureUrl = user.ProfilePictureUrl,
+            Gender = user.PatientProfile?.Gender
+        }, "User retrieved successfully."));
+    }
+
     [HttpPut("users/{id}/status")]
     public async Task<IActionResult> UpdateUserStatus(Guid id, [FromBody] bool isActive)
     {

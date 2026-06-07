@@ -97,13 +97,26 @@ public class MedicalRecordsController : ControllerBase
         var userId = GetUserId();
         if (userId == Guid.Empty) return Unauthorized(ApiResponse.FailureResult("Invalid session."));
 
+        // If the patientId matches a UserId in Patients table, resolve the actual PatientId
+        var resolvedPatientId = patientId;
+        var patientExists = await _patientContext.Patients.AnyAsync(p => p.Id == patientId);
+        if (!patientExists)
+        {
+            var patientByUserId = await _patientContext.Patients
+                .FirstOrDefaultAsync(p => p.UserId == patientId);
+            if (patientByUserId != null)
+            {
+                resolvedPatientId = patientByUserId.Id;
+            }
+        }
+
         bool success;
         string message;
         object? data;
 
-        if (User.IsInRole("Doctor"))
+        if (User.IsInRole("Doctor") || User.IsInRole("Admin"))
         {
-            var flatResult = await _medicalRecordsService.GetPatientRecordsFlatAsync(patientId, userId);
+            var flatResult = await _medicalRecordsService.GetPatientRecordsFlatAsync(resolvedPatientId, userId);
             success = flatResult.Success;
             message = flatResult.Message;
             data = flatResult.Data;

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -143,12 +144,13 @@ public class AuthService : IAuthService
                     var frontendUrl = _urlProvider.FrontendIpBaseUrl;
                     var accessUrl = $"{frontendUrl}/access/{accessToken}";
 
-                    // 8. Generate Confirmation Token
-                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    // 8. Generate Confirmation Token (Base64Url-encoded so it survives URL round-trips)
+                    var rawConfirmToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var encodedConfirmToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawConfirmToken));
                     var template = _urlProvider.EmailConfirmationLinkTemplate;
                     
                     var confirmationLink = template
-                        .Replace("[TOKEN]", Uri.EscapeDataString(token))
+                        .Replace("[TOKEN]", encodedConfirmToken)
                         .Replace("[USERID]", user.Id.ToString());
 
                     // 9. Log Action
@@ -683,11 +685,13 @@ public class AuthService : IAuthService
             return (false, "Email is already verified.");
         }
 
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        // Base64Url-encode the token so it survives URL round-trips intact
+        var rawResendToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedResendToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(rawResendToken));
         var template = _urlProvider.EmailConfirmationLinkTemplate;
         
         var confirmationLink = template
-            .Replace("[TOKEN]", Uri.EscapeDataString(token))
+            .Replace("[TOKEN]", encodedResendToken)
             .Replace("[USERID]", user.Id.ToString());
         
         var emailAddr = user.Email!;
@@ -708,7 +712,18 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return (false, "User not found.");
 
-        var result = await _userManager.ConfirmEmailAsync(user, token);
+        // Decode the Base64Url-encoded token back to the raw Identity token
+        string rawToken;
+        try
+        {
+            rawToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        }
+        catch (FormatException)
+        {
+            return (false, "Invalid or malformed confirmation token.");
+        }
+
+        var result = await _userManager.ConfirmEmailAsync(user, rawToken);
         if (result.Succeeded)
         {
             await _cache.InvalidateAsync($"user:profile:{user.Id}");
