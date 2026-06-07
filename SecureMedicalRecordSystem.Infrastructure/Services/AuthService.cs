@@ -749,6 +749,7 @@ public class AuthService : IAuthService
         Log.Information("ConfirmEmail - Decoded token preview: {Preview}, Length: {Len}", rawToken.Substring(0, Math.Min(50, rawToken.Length)), rawToken.Length);
         
         var result = await _userManager.ConfirmEmailAsync(user, rawToken);
+        Log.Information("ConfirmEmail - Result.Succeeded: {Succeeded}, Errors: {Errors}", result.Succeeded, string.Join(",", result.Errors.Select(e => e.Code + ":" + e.Description)));
         if (result.Succeeded)
         {
             await _cache.InvalidateAsync($"user:profile:{user.Id}");
